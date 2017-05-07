@@ -17,6 +17,7 @@ create table folders
 (
     id int not null unique auto_increment,
     hash varchar(64) not null,
+    parent_hash varchar(64) not null,
     file_path varchar(1024) not null,
     mod_time datetime not null,
     primary key (id)

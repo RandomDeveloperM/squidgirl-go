@@ -71,16 +71,13 @@ func SelectUser(name string) (UserTable, error) {
 }
 
 func insertUser(session *dbr.Session, record UserTable) error {
-	if session == nil {
-		newSession, err := ConnectDB()
-		if err != nil {
-			return err
-		}
-		session = newSession
-		defer session.Close()
+	session, err := ConnectDBRecheck(session)
+	if err != nil {
+		return err
 	}
+	defer session.Close()
 
-	_, err := session.InsertInto(userTableName).
+	_, err = session.InsertInto(userTableName).
 		Columns("name", "passhash", "permission", "created_at", "updated_at").
 		Record(record).
 		Exec()
@@ -92,16 +89,13 @@ func insertUser(session *dbr.Session, record UserTable) error {
 }
 
 func updateUser(session *dbr.Session, record UserTable) error {
-	if session == nil {
-		newSession, err := ConnectDB()
-		if err != nil {
-			return err
-		}
-		session = newSession
-		defer session.Close()
+	session, err := ConnectDBRecheck(session)
+	if err != nil {
+		return err
 	}
+	defer session.Close()
 
-	_, err := session.Update(userTableName).
+	_, err = session.Update(userTableName).
 		Set("passhash", record.PassHash).
 		Set("permission", record.Permission).
 		Set("updated_at", record.UpdatedAt).
@@ -114,17 +108,14 @@ func updateUser(session *dbr.Session, record UserTable) error {
 }
 
 func selectUserList(session *dbr.Session, name string) ([]UserTable, error) {
-	if session == nil {
-		newSession, err := ConnectDB()
-		if err != nil {
-			return nil, err
-		}
-		session = newSession
-		defer session.Close()
+	session, err := ConnectDBRecheck(session)
+	if err != nil {
+		return nil, err
 	}
+	defer session.Close()
 
 	var resultList []UserTable
-	_, err := session.Select("*").From(userTableName).Where("name = ?", name).Load(&resultList)
+	_, err = session.Select("*").From(userTableName).Where("name = ?", name).Load(&resultList)
 	if err != nil {
 		return nil, err
 	}

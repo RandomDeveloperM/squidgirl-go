@@ -21,3 +21,15 @@ func ConnectDB() (*dbr.Session, error) {
 	dbsession := db.NewSession(nil)
 	return dbsession, nil
 }
+
+func ConnectDBRecheck(session *dbr.Session) (*dbr.Session, error) {
+	if session == nil {
+		newSession, err := ConnectDB()
+		if err != nil {
+			return nil, err
+		}
+		session = newSession
+	}
+
+	return session, nil
+}

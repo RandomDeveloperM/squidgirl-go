@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -47,7 +48,13 @@ func registFileWalk(path string, info os.FileInfo, err error) error {
 func registDirInfo(path string, info os.FileInfo) {
 	folder, _ := db.SelectFolder(path)
 	if folder.Hash == "" {
-		db.InsertFolder(path, info.ModTime())
+		parentDir := filepath.Dir(path)
+		parentFolder, err := db.SelectFolder(parentDir)
+		if err != nil {
+			fmt.Printf("registDirInfo 親フォルダ未登録 err%s\n", err)
+			return
+		}
+		db.InsertFolder(path, parentFolder.Hash, info.ModTime())
 	} else {
 		fmt.Printf("registDirInfo dir exists hash=%s\n", folder.Hash)
 	}
@@ -75,17 +82,31 @@ func registFileZipInfo(path string, info os.FileInfo) {
 	book, _ := db.SelectBook(path)
 	if book.Hash == "" {
 		//新規登録
-		page := 0
+		page, _ := getZipFileCount(path)
 		db.InsertBook(dirHash, path, int(info.Size()), page, info.ModTime())
 	} else if !isEquleDateTime(book.ModTime, info.ModTime()) {
 		//更新あり
-		page := 0
+		page, _ := getZipFileCount(path)
 		db.UpdateBook(dirHash, path, int(info.Size()), page, info.ModTime())
 	} else {
 		fmt.Printf("registFileZipInfo file exists hash=%s\n", book.Hash)
 	}
 }
 
+//ZIPファイル内のファイル数を取得する
+func getZipFileCount(filePath string) (int, error) {
+	r, err := zip.OpenReader(filePath)
+	if err != nil {
+		fmt.Printf("getZipFileCount err=%s\n", err)
+		return 0, err
+	}
+	defer r.Close()
+
+	count := len(r.File)
+	return count, nil
+}
+
+//指定したフィル時刻が同一かどうか（分単位まででチェックする）
 func isEquleDateTime(t1 time.Time, t2 time.Time) bool {
 	t1Text := t1.UTC().Format("2006-01-02 15:04")
 	t2Text := t2.UTC().Format("2006-01-02 15:04")

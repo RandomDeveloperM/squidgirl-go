@@ -25,7 +25,7 @@ type LoginRequest struct {
 
 //LoginResponce ログインレスポンスデータ
 type LoginResponce struct {
-	Token string
+	Token string `json:"token" xml:"token"`
 }
 
 //LoginHandler ユーザーログインハンドラ

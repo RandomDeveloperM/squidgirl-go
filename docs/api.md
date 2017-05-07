@@ -32,27 +32,26 @@ FORMAT: 1A
 
 # Group ファイル取得API
 
-## ファイル・フォルダ一覧取得 [/api/filelist{?token,path}]
+## ファイル・フォルダ一覧取得 [/api/filelist{?folder_hash}]
 ### POST
 
 * 指定したフォルダ以下のファイルまたはフォルダを一覧で取得する
 
 + Parameters
-    + token: xxxxxxxxxxx (string, required) - ログインで取得したトークン
-    + path: folder/subfolder (string, required) - ファイルを取得するフォルダパス（空文字時はルートを取得）
+    + hash: zzzzzzzzz (string, required) - ファイルを取得するフォルダのハッシュ値（空文字時はルートを取得）
 
 + Response 200 (application/json)
     + Attributes
         + files (array) - ファイル情報リスト
             + (object)
-                + path: foldr/subfolder/hoge.zip (string) - ファイルパス
-                + sise: 4000000 (number)  - ファイルサイズ（フォルダ時は0）
+                + hash: xxxxx (string) - ファイル・フォルダのハッシュ値
+                + name: name.zip (string) - ファイル・フォルダ名
+                + size: 4000000 (number)  - ファイルサイズ（フォルダ時は0）
+                + page: 194 (number)  - ページ数（フォルダ時は0）
                 + isdir: false (boolean)  - フォルダかどうか（フォルダ時はtrue ファイル時はfalse）
-                + createtime: 2017-01-01T02:44:33 (datetime)  - ファイル作成日時
-                + updatetime: 2017-01-01T02:44:33 (datetime)  - ファイル更新日時
+                + modtime: 2017-01-01T02:44:33 (datetime)  - 最終更新日
                 + readtime: 2017-05-06T23:44:33 (datetime)  - 最終閲覧日時
-                + pagemax: 194 (number)  - ページ数（フォルダ時は0）
-                + pageindex: 45 (number)  - 既読位置（フォルダ時は0）
+                + readpos: 45 (number)  - 既読位置（フォルダ時は0）
                 + reaction: 1 (number)  - リアクションタイプ（フォルダ時は0）
 
 ## 履歴一覧取得 [/api/historylist{?token}]
@@ -60,7 +59,6 @@ FORMAT: 1A
 * 履歴として残っているファイルを一覧で取得する
 
 + Parameters
-    + token: xxxxxxxxxxx (string, required) - ログインで取得したトークン
 
 + Response 200 (application/json)
     ファイル・フォルダ一覧取得と同じ
@@ -70,7 +68,6 @@ FORMAT: 1A
 * リアクション登録されたファイルを一覧で取得する
 
 + Parameters
-    + token: xxxxxxxxxxx (string, required) - ログインで取得したトークン
     + reaction: 1 (number, required) - リアクションタイプ
 
 + Response 200 (application/json)

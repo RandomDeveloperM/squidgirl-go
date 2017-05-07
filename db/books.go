@@ -72,17 +72,25 @@ func SelectBook(filePath string) (BookTable, error) {
 	return recordList[0], nil
 }
 
-func insertBook(session *dbr.Session, record BookTable) error {
-	if session == nil {
-		newSession, err := ConnectDB()
-		if err != nil {
-			return err
-		}
-		session = newSession
-		defer session.Close()
+func SelectBookListFromFolder(folderHash string) ([]BookTable, error) {
+	fmt.Printf("SelectBookListFromFolder folderHash=%s\n", folderHash)
+	recordList, err := selectBookListFromFolder(nil, folderHash)
+	if err != nil {
+		fmt.Printf("SelectBookListFromFolder err=%s\n", err)
+		return nil, err
 	}
 
-	_, err := session.InsertInto(bookTableName).
+	return recordList, nil
+}
+
+func insertBook(session *dbr.Session, record BookTable) error {
+	session, err := ConnectDBRecheck(session)
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	_, err = session.InsertInto(bookTableName).
 		Columns("hash", "folder_hash", "file_path", "file_size", "page", "mod_time").
 		Record(record).
 		Exec()
@@ -94,16 +102,13 @@ func insertBook(session *dbr.Session, record BookTable) error {
 }
 
 func updateBook(session *dbr.Session, record BookTable) error {
-	if session == nil {
-		newSession, err := ConnectDB()
-		if err != nil {
-			return err
-		}
-		session = newSession
-		defer session.Close()
+	session, err := ConnectDBRecheck(session)
+	if err != nil {
+		return err
 	}
+	defer session.Close()
 
-	_, err := session.Update(bookTableName).
+	_, err = session.Update(bookTableName).
 		Set("file_size", record.FileSize).
 		Set("page", record.Page).
 		Set("mod_time", record.ModTime).
@@ -116,17 +121,30 @@ func updateBook(session *dbr.Session, record BookTable) error {
 }
 
 func selectBookList(session *dbr.Session, hash string) ([]BookTable, error) {
-	if session == nil {
-		newSession, err := ConnectDB()
-		if err != nil {
-			return nil, err
-		}
-		session = newSession
-		defer session.Close()
+	session, err := ConnectDBRecheck(session)
+	if err != nil {
+		return nil, err
 	}
+	defer session.Close()
 
 	var resultList []BookTable
-	_, err := session.Select("*").From(bookTableName).Where("hash = ?", hash).Load(&resultList)
+	_, err = session.Select("*").From(bookTableName).Where("hash = ?", hash).Load(&resultList)
+	if err != nil {
+		return nil, err
+	}
+
+	return resultList, nil
+}
+
+func selectBookListFromFolder(session *dbr.Session, folderHash string) ([]BookTable, error) {
+	session, err := ConnectDBRecheck(session)
+	if err != nil {
+		return nil, err
+	}
+	defer session.Close()
+
+	var resultList []BookTable
+	_, err = session.Select("*").From(bookTableName).Where("folder_hash = ?", folderHash).Load(&resultList)
 	if err != nil {
 		return nil, err
 	}
