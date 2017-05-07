@@ -18,8 +18,7 @@ create table folders
     id int not null unique auto_increment,
     hash varchar(64) not null,
     file_path varchar(1024) not null,
-    created_at datetime not null,
-    updated_at datetime not null,
+    mod_time datetime not null,
     primary key (id)
 ) engine=innodb;
 
@@ -32,8 +31,7 @@ create table books
     file_path varchar(1024) not null,
     file_size int not null,
     page int not null,
-    created_at datetime not null,
-    updated_at datetime not null,
+    mod_time datetime not null,
     primary key (id)
 ) engine=innodb;
 
@@ -45,8 +43,7 @@ create table histoires
     book_hash varchar(64) not null,
     read_pos int not null,
     reaction int not null,
-    created_at datetime not null,
-    updated_at datetime not null,
+    mod_time datetime not null,
     primary key (id)
 ) engine=innodb;
 

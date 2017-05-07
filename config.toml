@@ -12,7 +12,10 @@ HostName   = "127.0.0.1"
 PortNumber = "3306"
 Name       = "squidgirl"
 
-[LoginConfig]
+[Login]
 PassSalt   = "1uwnxGUW71XMMeqABZnC41Bnh59L7E9k0aUK6T7C"
 TokenSalt  = "Zzt5mfGTDYmFcGEYUzBbcPRqUUPR9Bdr7SJwWSxh"
 
+[File]
+WatchDir      = "_data"
+WatchInterval = 0

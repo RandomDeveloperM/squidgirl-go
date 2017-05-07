@@ -72,10 +72,11 @@ func SelectUser(name string) (UserTable, error) {
 
 func insertUser(session *dbr.Session, record UserTable) error {
 	if session == nil {
-		session, err := ConnectDB()
+		newSession, err := ConnectDB()
 		if err != nil {
 			return err
 		}
+		session = newSession
 		defer session.Close()
 	}
 
@@ -92,10 +93,11 @@ func insertUser(session *dbr.Session, record UserTable) error {
 
 func updateUser(session *dbr.Session, record UserTable) error {
 	if session == nil {
-		session, err := ConnectDB()
+		newSession, err := ConnectDB()
 		if err != nil {
 			return err
 		}
+		session = newSession
 		defer session.Close()
 	}
 
@@ -113,10 +115,11 @@ func updateUser(session *dbr.Session, record UserTable) error {
 
 func selectUserList(session *dbr.Session, name string) ([]UserTable, error) {
 	if session == nil {
-		session, err := ConnectDB()
+		newSession, err := ConnectDB()
 		if err != nil {
 			return nil, err
 		}
+		session = newSession
 		defer session.Close()
 	}
 

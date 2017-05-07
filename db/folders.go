@@ -14,50 +14,56 @@ const folderTableName = "folders"
 
 //FolderTable アーカイブ情報テーブル
 type FolderTable struct {
-	ID        int64     `db:"id"`
-	Hash      string    `db:"hash"`
-	FilePath  string    `db:"file_path"`
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
+	ID       int64     `db:"id"`
+	Hash     string    `db:"hash"`
+	FilePath string    `db:"file_path"`
+	ModTime  time.Time `db:"mod_time"`
 }
 
-func InsertFolder(filePath string, createTime time.Time, updateTime time.Time) error {
+func InsertFolder(filePath string, modTime time.Time) error {
+	fmt.Printf("InsertFolder filePath=%s, modTime=%s\n", filePath, modTime)
 	if filePath == "" {
 		return fmt.Errorf("パラメーターエラー")
 	}
 
 	hash := createFolderHash(filePath)
-	record := FolderTable{Hash: hash, FilePath: filePath, CreatedAt: createTime, UpdatedAt: updateTime}
+	record := FolderTable{Hash: hash, FilePath: filePath, ModTime: modTime}
 	err := insertFolder(nil, record)
 	if err != nil {
+		fmt.Printf("InsertFolder err=%s\n", err)
 		return err
 	}
 	return nil
 }
 
-func UpdateFolder(filePath string, createTime time.Time, updateTime time.Time) error {
+func UpdateFolder(filePath string, modTime time.Time) error {
+	fmt.Printf("UpdateFolder filePath=%s, modTime=%s\n", filePath, modTime)
 	if filePath == "" {
 		return fmt.Errorf("パラメーターエラー")
 	}
 
 	hash := createFolderHash(filePath)
-	record := FolderTable{Hash: hash, FilePath: filePath, CreatedAt: createTime, UpdatedAt: updateTime}
+	record := FolderTable{Hash: hash, FilePath: filePath, ModTime: modTime}
 	err := updateFolder(nil, record)
 	if err != nil {
+		fmt.Printf("UpdateFolder err=%s\n", err)
 		return err
 	}
 	return nil
 }
 
 func SelectFolder(filePath string) (FolderTable, error) {
+	fmt.Printf("SelectFolder filePath=%s\n", filePath)
 	var result FolderTable
 	hash := createFolderHash(filePath)
 	recordList, err := selectFolderList(nil, hash)
 	if err != nil {
+		fmt.Printf("SelectFolder err=%s\n", err)
 		return result, err
 	}
 
 	if len(recordList) == 0 {
+		fmt.Printf("SelectFolder len==0\n")
 		return result, nil
 	}
 	return recordList[0], nil
@@ -65,15 +71,16 @@ func SelectFolder(filePath string) (FolderTable, error) {
 
 func insertFolder(session *dbr.Session, record FolderTable) error {
 	if session == nil {
-		session, err := ConnectDB()
+		newSession, err := ConnectDB()
 		if err != nil {
 			return err
 		}
+		session = newSession
 		defer session.Close()
 	}
 
 	_, err := session.InsertInto(folderTableName).
-		Columns("hash", "file_path", "file_count", "created_at", "updated_at").
+		Columns("hash", "file_path", "mod_time").
 		Record(record).
 		Exec()
 	if err != nil {
@@ -85,16 +92,16 @@ func insertFolder(session *dbr.Session, record FolderTable) error {
 
 func updateFolder(session *dbr.Session, record FolderTable) error {
 	if session == nil {
-		session, err := ConnectDB()
+		newSession, err := ConnectDB()
 		if err != nil {
 			return err
 		}
+		session = newSession
 		defer session.Close()
 	}
 
 	_, err := session.Update(folderTableName).
-		Set("created_at", record.CreatedAt).
-		Set("updated_at", record.UpdatedAt).
+		Set("mod_time", record.ModTime).
 		Where("hash = ?", record.Hash).
 		Exec()
 	if err != nil {
@@ -105,11 +112,12 @@ func updateFolder(session *dbr.Session, record FolderTable) error {
 
 func selectFolderList(session *dbr.Session, hash string) ([]FolderTable, error) {
 	if session == nil {
-		session, err := ConnectDB()
+		newSession, err := ConnectDB()
 		if err != nil {
 			return nil, err
 		}
-		defer session.Close()
+		session = newSession
+		defer newSession.Close()
 	}
 
 	var resultList []FolderTable

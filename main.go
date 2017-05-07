@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+	"github.com/robfig/cron"
 
 	"github.com/mryp/squidgirl-go/config"
 )
@@ -16,8 +18,26 @@ func main() {
 	if !config.LoadConfig() {
 		log.Println("設定ファイル読み込み失敗（デフォルト値動作）")
 	}
+	startCrontab()
+	startEchoServer()
+}
 
-	//ECHO初期設定
+func startCrontab() {
+	interval := config.GetConfig().File.WatchInterval
+	if interval > 0 {
+		c := cron.New()
+		format := fmt.Sprintf("0 */%d * * * *", config.GetConfig().File.WatchInterval)
+		c.AddFunc(format, func() {
+			fmt.Println("CRON起動（分）")
+			RegisterFileWatchar()
+		})
+		c.Start()
+	} else {
+		RegisterFileWatchar() //最初だけ呼び出す
+	}
+}
+
+func startEchoServer() {
 	e := echo.New()
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS()) //CORS対応（他ドメインからAJAX通信可能にする）

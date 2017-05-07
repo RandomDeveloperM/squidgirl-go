@@ -14,6 +14,7 @@ type EnvConfig struct {
 	Server ServerEnvConfig
 	DB     DBEnvConfig
 	Login  LoginConfig
+	File   FileConfig
 }
 
 //LogEnvConfig ログ設定情報
@@ -42,12 +43,19 @@ type LoginConfig struct {
 	TokenSalt string
 }
 
+//FileConfig ファイル関連設定情報
+type FileConfig struct {
+	WatchDir      string
+	WatchInterval int
+}
+
 // 設定情報保持変数
 var envConfig = EnvConfig{
 	Log:    LogEnvConfig{Output: "stream"},
 	Server: ServerEnvConfig{PortNum: 8080, HostName: "localhost:8080"},
 	DB:     DBEnvConfig{UserID: "root", Password: "root", HostName: "127.0.0.1", PortNumber: "3306", Name: "squidgirl"},
 	Login:  LoginConfig{PassSalt: "Cp0xtdDLsHpdadfxysuemBr5a55EDgVv4hzZGyRP", TokenSalt: "Jz2tS4HdzWRNdWbD46SemE6Eh5LZUY2EVGcpkbRx"},
+	File:   FileConfig{WatchDir: "", WatchInterval: 60},
 }
 
 //init 初期化
