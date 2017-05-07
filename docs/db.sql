@@ -12,11 +12,23 @@ create table users
     primary key (id)
 ) engine=innodb;
 
+/* フォルダ情報 */
+create table folders
+(
+    id int not null unique auto_increment,
+    hash varchar(64) not null,
+    file_path varchar(1024) not null,
+    created_at datetime not null,
+    updated_at datetime not null,
+    primary key (id)
+) engine=innodb;
+
 /* アーカイブファイル情報 */
 create table books
 (
     id int not null unique auto_increment,
     hash varchar(64) not null,
+    folder_hash varchar(64) not null,
     file_path varchar(1024) not null,
     file_size int not null,
     page int not null,

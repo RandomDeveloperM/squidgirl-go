@@ -1,4 +1,4 @@
-package main
+package db
 
 import (
 	"fmt"
@@ -10,14 +10,14 @@ import (
 )
 
 //ConnectDB DB接続
-func ConnectDB() *dbr.Session {
+func ConnectDB() (*dbr.Session, error) {
 	dbConfig := config.GetConfig().DB
 	db, err := dbr.Open("mysql", dbConfig.UserID+":"+dbConfig.Password+"@tcp("+dbConfig.HostName+":"+dbConfig.PortNumber+")/"+dbConfig.Name+"?parseTime=true", nil)
 	if err != nil {
 		fmt.Printf("connectDB err=%v\n", err)
-		return nil
+		return nil, err
 	}
 
 	dbsession := db.NewSession(nil)
-	return dbsession
+	return dbsession, nil
 }

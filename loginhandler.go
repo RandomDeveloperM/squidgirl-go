@@ -7,7 +7,9 @@ import (
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
+
 	"github.com/mryp/squidgirl-go/config"
+	"github.com/mryp/squidgirl-go/db"
 )
 
 const (
@@ -47,13 +49,17 @@ func LoginHandler(c echo.Context) error {
 //ログインチェックを行い、トークンを返す
 func login(userName string, password string) (string, error) {
 	//DB検索を行う
-	user := SelectUser(userName)
+	user, err := db.SelectUser(userName)
+	if err != nil {
+		fmt.Printf("login ERROR ユーザー検索エラー\n")
+		return "", err
+	}
 	if user.Name != userName {
 		fmt.Printf("login ERROR ユーザー未登録\n")
 		return "", nil
 	}
 
-	passHash := CreatePasswordHash(password)
+	passHash := db.CreatePasswordHash(password)
 	if user.PassHash != passHash {
 		fmt.Printf("login ERROR パスワード不正 %s <> %s\n", user.PassHash, passHash)
 		return "", nil
@@ -75,7 +81,7 @@ func createToken(userName string, permission int) (string, error) {
 	//マップに設定
 	claims := token.Claims.(jwt.MapClaims)
 	claims["name"] = userName
-	claims["admin"] = permission == UserPermissionAdmin
+	claims["admin"] = permission == db.UserPermissionAdmin
 	claims["exp"] = time.Now().Add(time.Hour * TokenLimitHour).Unix()
 
 	//トークン取得
@@ -89,7 +95,7 @@ func createToken(userName string, permission int) (string, error) {
 
 //CreateUserHandler ユーザーを作成する
 func CreateUserHandler(c echo.Context) error {
-	err := createUser("test", "testpassword", UserPermissionAdmin)
+	err := createUser("test", "testpassword", db.UserPermissionAdmin)
 	if err != nil {
 		return err
 	}
@@ -99,7 +105,7 @@ func CreateUserHandler(c echo.Context) error {
 
 //指定したユーザー名・パスワードでユーザーを作成する。既に作成されているときは更新する
 func createUser(userName string, password string, permission int) error {
-	if err := InsertUser(userName, password, permission); err != nil {
+	if err := db.InsertUser(userName, password, permission); err != nil {
 		return err
 	}
 
