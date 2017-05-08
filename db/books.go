@@ -29,7 +29,7 @@ func InsertBook(folderHash string, filePath string, fileSize int, page int, modT
 		return fmt.Errorf("パラメーターエラー")
 	}
 
-	hash := createBookHash(filePath)
+	hash := CreateBookHash(filePath)
 	record := BookTable{FolderHash: folderHash, Hash: hash, FilePath: filePath, FileSize: fileSize, Page: page, ModTime: modTime}
 	err := insertBook(nil, record)
 	if err != nil {
@@ -45,7 +45,7 @@ func UpdateBook(folderHash string, filePath string, fileSize int, page int, modT
 		return fmt.Errorf("パラメーターエラー")
 	}
 
-	hash := createBookHash(filePath)
+	hash := CreateBookHash(filePath)
 	record := BookTable{FolderHash: folderHash, Hash: hash, FilePath: filePath, FileSize: fileSize, Page: page, ModTime: modTime}
 	err := updateBook(nil, record)
 	if err != nil {
@@ -58,7 +58,7 @@ func UpdateBook(folderHash string, filePath string, fileSize int, page int, modT
 func SelectBook(filePath string) (BookTable, error) {
 	fmt.Printf("SelectBook filePath=%s\n", filePath)
 	var result BookTable
-	hash := createBookHash(filePath)
+	hash := CreateBookHash(filePath)
 	recordList, err := selectBookList(nil, hash)
 	if err != nil {
 		fmt.Printf("SelectBook err=%s\n", err)
@@ -152,7 +152,7 @@ func selectBookListFromFolder(session *dbr.Session, folderHash string) ([]BookTa
 	return resultList, nil
 }
 
-func createBookHash(filePath string) string {
+func CreateBookHash(filePath string) string {
 	hashBytes := sha256.Sum256([]byte(filePath))
 	hash := hex.EncodeToString(hashBytes[:])
 	return hash

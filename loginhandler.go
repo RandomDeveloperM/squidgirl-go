@@ -36,9 +36,9 @@ func LoginHandler(c echo.Context) error {
 	}
 	fmt.Printf("request=%v\n", *req)
 
-	token, err := login(req.UserName, req.Password)
-	if err != nil {
-		return err
+	token := login(req.UserName, req.Password)
+	if token == "" {
+		return echo.NewHTTPError(http.StatusUnauthorized)
 	}
 
 	res := new(LoginResponce)
@@ -47,31 +47,36 @@ func LoginHandler(c echo.Context) error {
 }
 
 //ログインチェックを行い、トークンを返す
-func login(userName string, password string) (string, error) {
+func login(userName string, password string) string {
+	if userName == "" || password == "" {
+		fmt.Printf("login ERROR パラメーターエラー\n")
+		return ""
+	}
+
 	//DB検索を行う
 	user, err := db.SelectUser(userName)
 	if err != nil {
 		fmt.Printf("login ERROR ユーザー検索エラー\n")
-		return "", err
+		return ""
 	}
 	if user.Name != userName {
 		fmt.Printf("login ERROR ユーザー未登録\n")
-		return "", nil
+		return ""
 	}
 
 	passHash := db.CreatePasswordHash(password)
 	if user.PassHash != passHash {
 		fmt.Printf("login ERROR パスワード不正 %s <> %s\n", user.PassHash, passHash)
-		return "", nil
+		return ""
 	}
 
 	token, err := createToken(userName, user.Permission)
 	if err != nil {
-		return "", nil
+		return ""
 	}
 
 	fmt.Printf("login OK\n")
-	return token, nil
+	return token
 }
 
 //ログイントークンを生成して返す

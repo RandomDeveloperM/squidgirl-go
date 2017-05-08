@@ -76,26 +76,34 @@ FORMAT: 1A
 
 # Group ページ関連API
 
-## ページ画像取得 [/api/getbookimage{?token,path,index,maxheight,maxwidth}]
+## サムネイル画像取得 [/api/thumbnail{?hash}]
 ### POST
 
 * リアクション登録されたファイルを一覧で取得する
 
 + Parameters
-    + token: xxxxxxxxxxx (string, required) - ログインで取得したトークン
-    + path: 1 (number, required) - ファイルパス
+    + hash: xxxxxxxxxxx (string, required) - ファイルハッシュ（フォルダも可能）
+
++ Response 200 (image/jpeg)
+
+## ページ画像取得 [/api/page{?hash,index,maxheight,maxwidth}]
+### POST
+
+* リアクション登録されたファイルを一覧で取得する
+
++ Parameters
+    + hash: xxxxxxxxxxx (string, required) - ファイルハッシュ
     + index: 1 (number, required) - ページ番号
     + maxheight: 1 (number, required) - 最大高さ
     + maxwidth: 1 (number, required) - 最大幅
 
 + Response 200 (image/jpeg)
 
-## ページ状態保存 [/api/setbook{?token,path,index,reaction}]
+## ページ状態保存 [/api/savebook{?hash,index,reaction}]
 ### POST
 
 + Parameters
-    + token: xxxxxxxxxxx (string, required) - ログインで取得したトークン
-    + path: 1 (number, required) - ファイルパス
+    + hash: xxxxxxxxxxx (string, required) - ファイルハッシュ
     + index: 1 (number, required) - 既読位置
     + reaction: 1 (number, required) - リアクションタイプ
 

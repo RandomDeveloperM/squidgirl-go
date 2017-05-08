@@ -11,6 +11,7 @@ import (
 	"github.com/mryp/squidgirl-go/db"
 )
 
+//未設定時の時刻
 var unknownTime = time.Unix(0, 0).UTC()
 
 //FileListRequest ファイルリストリクエストデータ

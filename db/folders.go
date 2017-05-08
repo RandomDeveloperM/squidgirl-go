@@ -28,7 +28,7 @@ func InsertFolder(filePath string, parentHash string, modTime time.Time) error {
 		return fmt.Errorf("パラメーターエラー")
 	}
 
-	hash := createFolderHash(filePath)
+	hash := CreateFolderHash(filePath)
 	record := FolderTable{Hash: hash, ParentHash: parentHash, FilePath: filePath, ModTime: modTime}
 	err := insertFolder(nil, record)
 	if err != nil {
@@ -44,7 +44,7 @@ func UpdateFolder(filePath string, parentHash string, modTime time.Time) error {
 		return fmt.Errorf("パラメーターエラー")
 	}
 
-	hash := createFolderHash(filePath)
+	hash := CreateFolderHash(filePath)
 	record := FolderTable{Hash: hash, ParentHash: parentHash, FilePath: filePath, ModTime: modTime}
 	err := updateFolder(nil, record)
 	if err != nil {
@@ -57,7 +57,7 @@ func UpdateFolder(filePath string, parentHash string, modTime time.Time) error {
 func SelectFolder(filePath string) (FolderTable, error) {
 	fmt.Printf("SelectFolder filePath=%s\n", filePath)
 	var result FolderTable
-	hash := createFolderHash(filePath)
+	hash := CreateFolderHash(filePath)
 	recordList, err := selectFolderList(nil, hash)
 	if err != nil {
 		fmt.Printf("SelectFolder err=%s\n", err)
@@ -154,7 +154,7 @@ func selectFolderListFromParent(session *dbr.Session, parentHash string) ([]Fold
 	return resultList, nil
 }
 
-func createFolderHash(filePath string) string {
+func CreateFolderHash(filePath string) string {
 	hashBytes := sha256.Sum256([]byte(filePath))
 	hash := hex.EncodeToString(hashBytes[:])
 	return hash
