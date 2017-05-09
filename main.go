@@ -60,7 +60,8 @@ func startEchoServer() {
 	apiGroup := e.Group("/api")
 	apiGroup.Use(middleware.JWT([]byte(config.GetConfig().Login.TokenSalt)))
 	apiGroup.POST("/filelist", FileListHandler)
-	apiGroup.POST("/thumbnail", ThumbnailHandler)
+	apiGroup.GET("/thumbnail/:hash", ThumbnailHandler)
+	apiGroup.GET("/thumbnailbase64/:hash", ThumbnailBase64Handler)
 	//apiGroup.POST("/logintest", LoginTestHandler)
 
 	//開始

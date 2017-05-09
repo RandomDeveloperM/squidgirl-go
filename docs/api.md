@@ -76,15 +76,26 @@ FORMAT: 1A
 
 # Group ページ関連API
 
-## サムネイル画像取得 [/api/thumbnail{?hash}]
-### POST
+## サムネイル画像取得 [/api/thumbnail/{hash}]
+### GET
 
-* リアクション登録されたファイルを一覧で取得する
+* サムネイル画像を取得する
 
 + Parameters
     + hash: xxxxxxxxxxx (string, required) - ファイルハッシュ（フォルダも可能）
 
 + Response 200 (image/jpeg)
+
+## サムネイル画像取得 [/api/thumbnailbase64/{hash}]
+### GET
+
+* サムネイル画像をBASE64形式の文字列として取得する
+
++ Parameters
+    + hash: xxxxxxxxxxx (string, required) - ファイルハッシュ（フォルダも可能）
+
++ Response 200 (text/plain)
+    * 画像データをBASE64でパッケージングした文字列
 
 ## ページ画像取得 [/api/page{?hash,index,maxheight,maxwidth}]
 ### POST
