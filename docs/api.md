@@ -36,12 +36,16 @@ FORMAT: 1A
 ### POST
 
 * 指定したフォルダ以下のファイルまたはフォルダを一覧で取得する
+* ".." ファイル名で一つ上の階層のフォルダも取得する（ルート時は返さない）
 
 + Parameters
     + hash: zzzzzzzzz (string, required) - ファイルを取得するフォルダのハッシュ値（空文字時はルートを取得）
 
 + Response 200 (application/json)
     + Attributes
+        + name: 指定したハッシュのファイル・フォルダ名
+        + allcount: 所属ファイルの最大数
+        + count: 取得ファイル数
         + files (array) - ファイル情報リスト
             + (object)
                 + hash: xxxxx (string) - ファイル・フォルダのハッシュ値

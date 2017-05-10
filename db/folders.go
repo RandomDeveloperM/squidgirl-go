@@ -71,6 +71,22 @@ func SelectFolder(filePath string) (FolderTable, error) {
 	return recordList[0], nil
 }
 
+func SelectFolderFromHash(hash string) (FolderTable, error) {
+	fmt.Printf("SelectFolderFromHash hash=%s\n", hash)
+	var result FolderTable
+	recordList, err := selectFolderList(nil, hash)
+	if err != nil {
+		fmt.Printf("SelectFolderFromHash err=%s\n", err)
+		return result, err
+	}
+
+	if len(recordList) == 0 {
+		fmt.Printf("SelectFolderFromHash len==0\n")
+		return result, nil
+	}
+	return recordList[0], nil
+}
+
 func SelectFolderListFromParent(parentHash string) ([]FolderTable, error) {
 	fmt.Printf("SelectFolderListFromParent parentHash=%s\n", parentHash)
 	recordList, err := selectFolderListFromParent(nil, parentHash)

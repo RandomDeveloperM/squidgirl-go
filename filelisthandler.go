@@ -20,7 +20,15 @@ type FileListRequest struct {
 }
 
 //FileListResponce ファイルリストレスポンスデータ
+
 type FileListResponce struct {
+	Name     string                  `json:"name" xml:"name"`
+	AllCount int                     `json:"allcount" xml:"allcount"`
+	Count    int                     `json:"count" xml:"count"`
+	Files    []FileListFilesResponce `json:"files" xml:"files"`
+}
+
+type FileListFilesResponce struct {
 	Hash     string    `json:"hash" xml:"hash"`
 	Name     string    `json:"name" xml:"name"`
 	Size     int       `json:"size" xml:"size"`
@@ -40,14 +48,29 @@ func FileListHandler(c echo.Context) error {
 	}
 	fmt.Printf("request=%v\n", *req)
 
+	//ルートを取得
+	rootFolder, err := db.SelectFolderRoot()
+	if err != nil {
+		return err
+	}
+
 	folderHash := req.Hash
 	if folderHash == "" {
 		//フォルダハッシュをルートとして取得
-		folder, err := db.SelectFolderRoot()
+		folderHash = rootFolder.Hash
+	}
+
+	//指定したフォルダの親フォルダを取得する
+	selectFolder, err := db.SelectFolderFromHash(folderHash)
+	if err != nil {
+		return err
+	}
+	var parentFolder db.FolderTable
+	if selectFolder.ParentHash != "" {
+		parentFolder, err = db.SelectFolderFromHash(selectFolder.ParentHash)
 		if err != nil {
 			return err
 		}
-		folderHash = folder.Hash
 	}
 
 	//フォルダ一覧を取得
@@ -62,21 +85,49 @@ func FileListHandler(c echo.Context) error {
 		return err
 	}
 
-	//レスポンスを作成
-	responce := make([]FileListResponce, 0)
+	//ファイル情報レスポンスを作成
+	files := make([]FileListFilesResponce, 0)
+	if parentFolder.Hash != "" {
+		files = append(files, createFileListResponceFromUpperFolder(parentFolder))
+	}
 	for _, v := range folderList {
-		responce = append(responce, createFileListResponceFromFolder(v))
+		files = append(files, createFileListResponceFromFolder(v))
 	}
 	for _, v := range bookList {
-		responce = append(responce, createFileListResponceFromBook(v))
+		files = append(files, createFileListResponceFromBook(v))
 	}
 
+	//取得フォルダ情報レスポンスを作成
+	responce := new(FileListResponce)
+	if rootFolder.Hash == selectFolder.Hash {
+		responce.Name = "ルートフォルダ"
+		responce.AllCount = len(files)
+	} else {
+		responce.Name = filepath.Base(selectFolder.FilePath)
+		responce.AllCount = len(files) - 1 //一つ上の分を除く
+	}
+	responce.Count = 0
+	responce.Files = files
 	return c.JSON(http.StatusOK, responce)
 }
 
-func createFileListResponceFromFolder(folder db.FolderTable) FileListResponce {
+func createFileListResponceFromUpperFolder(folder db.FolderTable) FileListFilesResponce {
+	return FileListFilesResponce{
+		Hash:     folder.Hash,
+		Name:     "..",
+		Size:     0,
+		Page:     0,
+		IsDir:    true,
+		ModTime:  folder.ModTime.UTC(),
+		ReadTime: unknownTime,
+		ReadPos:  0,
+		Reaction: 0,
+	}
+}
+
+func createFileListResponceFromFolder(folder db.FolderTable) FileListFilesResponce {
 	name := filepath.Base(folder.FilePath)
-	return FileListResponce{
+	return FileListFilesResponce{
 		Hash:     folder.Hash,
 		Name:     name,
 		Size:     0,
@@ -89,13 +140,13 @@ func createFileListResponceFromFolder(folder db.FolderTable) FileListResponce {
 	}
 }
 
-func createFileListResponceFromBook(book db.BookTable) FileListResponce {
+func createFileListResponceFromBook(book db.BookTable) FileListFilesResponce {
 	name := filepath.Base(book.FilePath)
 	readTime := unknownTime
 	readPos := 0
 	reaction := 0
 
-	return FileListResponce{
+	return FileListFilesResponce{
 		Hash:     book.Hash,
 		Name:     name,
 		Size:     book.FileSize,
