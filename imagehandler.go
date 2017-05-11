@@ -34,7 +34,8 @@ func ThumbnailBase64Handler(c echo.Context) error {
 	thumImagePath := CreateThumFilePathFromHash(hash)
 	_, err := os.Stat(thumImagePath)
 	if err != nil {
-		thumImagePath = "assets/noimage.jpg"
+		//画像なしを返却する
+		return c.String(http.StatusOK, "")
 	}
 
 	data, err := ioutil.ReadFile(thumImagePath)
