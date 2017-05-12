@@ -16,7 +16,9 @@ var unknownTime = time.Unix(0, 0).UTC()
 
 //FileListRequest ファイルリストリクエストデータ
 type FileListRequest struct {
-	Hash string `json:"hash" xml:"hash" form:"hash" query:"hash"`
+	Hash   string `json:"hash" xml:"hash" form:"hash" query:"hash"`
+	Offset int    `json:"offset" xml:"offset" form:"offset" query:"offset"`
+	Limit  int    `json:"limit" xml:"limit" form:"limit" query:"limit"`
 }
 
 //FileListResponce ファイルリストレスポンスデータ
@@ -88,25 +90,32 @@ func FileListHandler(c echo.Context) error {
 	//ファイル情報レスポンスを作成
 	files := make([]FileListFilesResponce, 0)
 	if parentFolder.Hash != "" {
+		//親フォルダは必ず追加する
 		files = append(files, createFileListResponceFromUpperFolder(parentFolder))
 	}
+	index := 0
 	for _, v := range folderList {
-		files = append(files, createFileListResponceFromFolder(v))
+		if index >= req.Offset && index < req.Offset+req.Limit {
+			files = append(files, createFileListResponceFromFolder(v))
+		}
+		index++
 	}
 	for _, v := range bookList {
-		files = append(files, createFileListResponceFromBook(v))
+		if index >= req.Offset && index < req.Offset+req.Limit {
+			files = append(files, createFileListResponceFromBook(v))
+		}
+		index++
 	}
 
 	//取得フォルダ情報レスポンスを作成
 	responce := new(FileListResponce)
 	if rootFolder.Hash == selectFolder.Hash {
 		responce.Name = "ルートフォルダ"
-		responce.AllCount = len(files)
 	} else {
 		responce.Name = filepath.Base(selectFolder.FilePath)
-		responce.AllCount = len(files) - 1 //一つ上の分を除く
 	}
-	responce.Count = 0
+	responce.AllCount = index
+	responce.Count = len(files)
 	responce.Files = files
 	return c.JSON(http.StatusOK, responce)
 }

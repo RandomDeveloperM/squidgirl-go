@@ -40,7 +40,9 @@ FORMAT: 1A
 
 + Parameters
     + hash: zzzzzzzzz (string, required) - ファイルを取得するフォルダのハッシュ値（空文字時はルートを取得）
-
+    + offset: 0 (number, required) - 取得開始位置
+    + limit: 10 (number, required) - 取得最大数
+    
 + Response 200 (application/json)
     + Attributes
         + name: 指定したハッシュのファイル・フォルダ名
