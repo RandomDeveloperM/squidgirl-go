@@ -32,7 +32,7 @@ FORMAT: 1A
 
 # Group ファイル取得API
 
-## ファイル・フォルダ一覧取得 [/api/filelist{?folder_hash}]
+## ファイル・フォルダ一覧取得 [/api/filelist{?hash,offset,limit}]
 ### POST
 
 * 指定したフォルダ以下のファイルまたはフォルダを一覧で取得する
@@ -46,7 +46,7 @@ FORMAT: 1A
 + Response 200 (application/json)
     + Attributes
         + name: 指定したハッシュのファイル・フォルダ名
-        + allcount: 所属ファイルの最大数
+        + allcount: 所属ファイルの最大数(親フォルダは含まない)
         + count: 取得ファイル数
         + files (array) - ファイル情報リスト
             + (object)
@@ -103,18 +103,23 @@ FORMAT: 1A
 + Response 200 (text/plain)
     * 画像データをBASE64でパッケージングした文字列
 
-## ページ画像取得 [/api/page{?hash,index,maxheight,maxwidth}]
+## ページ画像取得 [/api/page{?hash,index,maxheight,maxwidth,base64}]
 ### POST
 
 * リアクション登録されたファイルを一覧で取得する
 
 + Parameters
     + hash: xxxxxxxxxxx (string, required) - ファイルハッシュ
-    + index: 1 (number, required) - ページ番号
-    + maxheight: 1 (number, required) - 最大高さ
-    + maxwidth: 1 (number, required) - 最大幅
+    + index: 1 (number, required) - ページ番号（1～）
+    + maxheight: 1280 (number, required) - 最大高さ
+    + maxwidth: 720 (number, required) - 最大幅
+    + base64: false (boolean, required) - base64文字列で返却するかどうか
 
-+ Response 200 (image/jpeg)
++ Response 200 (image/jpeg) 
+    * base64 == false の時は画像データとして返す
+
++ Response 200 (text/plain)
+    * base64 == true の時はBASE64文字列として返す
 
 ## ページ状態保存 [/api/savebook{?hash,index,reaction}]
 ### POST

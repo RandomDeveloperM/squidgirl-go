@@ -55,10 +55,9 @@ func UpdateBook(folderHash string, filePath string, fileSize int, page int, modT
 	return nil
 }
 
-func SelectBook(filePath string) (BookTable, error) {
-	fmt.Printf("SelectBook filePath=%s\n", filePath)
+func SelectBookFromHash(hash string) (BookTable, error) {
+	fmt.Printf("SelectBook hash=%s\n", hash)
 	var result BookTable
-	hash := CreateBookHash(filePath)
 	recordList, err := selectBookList(nil, hash)
 	if err != nil {
 		fmt.Printf("SelectBook err=%s\n", err)
@@ -70,6 +69,12 @@ func SelectBook(filePath string) (BookTable, error) {
 		return result, nil
 	}
 	return recordList[0], nil
+}
+
+func SelectBook(filePath string) (BookTable, error) {
+	fmt.Printf("SelectBook filePath=%s\n", filePath)
+	hash := CreateBookHash(filePath)
+	return SelectBookFromHash(hash)
 }
 
 func SelectBookListFromFolder(folderHash string) ([]BookTable, error) {

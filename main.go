@@ -62,6 +62,7 @@ func startEchoServer() {
 	apiGroup.POST("/filelist", FileListHandler)
 	apiGroup.GET("/thumbnail/:hash", ThumbnailHandler)
 	apiGroup.GET("/thumbnailbase64/:hash", ThumbnailBase64Handler)
+	apiGroup.GET("/page/:hash", PageHandler)
 	//apiGroup.POST("/logintest", LoginTestHandler)
 
 	//開始
