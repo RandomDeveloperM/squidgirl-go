@@ -12,7 +12,7 @@ import (
 )
 
 type ThumbnailRequest struct {
-	Hash string `json:"hash" xml:"hash" form:"hash" query:"hash"`
+	Base64 bool `json:"base64" xml:"base64" form:"base64" query:"base64"`
 }
 
 type PageRequest struct {
@@ -26,30 +26,31 @@ func ThumbnailHandler(c echo.Context) error {
 	hash := c.Param("hash")
 	fmt.Printf("hash=%s\n", hash)
 
-	thumImagePath := CreateThumFilePathFromHash(hash)
-	_, err := os.Stat(thumImagePath)
-	if err != nil {
-		return c.File("assets/noimage.jpg")
+	req := new(ThumbnailRequest)
+	if err := c.Bind(req); err != nil {
+		return err
 	}
-	return c.File(thumImagePath)
-}
-
-func ThumbnailBase64Handler(c echo.Context) error {
-	hash := c.Param("hash")
-	fmt.Printf("hash=%s\n", hash)
+	fmt.Printf("request=%v\n", *req)
 
 	thumImagePath := CreateThumFilePathFromHash(hash)
 	_, err := os.Stat(thumImagePath)
 	if os.IsNotExist(err) {
 		//画像なしを返却する
-		return c.String(http.StatusOK, "")
+		if req.Base64 {
+			return c.String(http.StatusOK, "")
+		}
+		return c.File("assets/noimage.jpg")
 	}
 
-	imageBase64, err := convertImageToBase64(thumImagePath)
-	if err != nil {
-		return err
+	if req.Base64 {
+		imageBase64, err := convertImageToBase64(thumImagePath)
+		if err != nil {
+			return err
+		}
+		return c.String(http.StatusOK, imageBase64)
 	}
-	return c.String(http.StatusOK, imageBase64)
+
+	return c.File(thumImagePath)
 }
 
 func convertImageToBase64(filePath string) (string, error) {

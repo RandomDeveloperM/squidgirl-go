@@ -7,6 +7,7 @@ import (
 
 	"time"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 	"github.com/mryp/squidgirl-go/db"
 )
@@ -38,7 +39,7 @@ type FileListFilesResponce struct {
 	IsDir    bool      `json:"isdir" xml:"isdir"`
 	ModTime  time.Time `json:"modtime" xml:"modtime"`
 	ReadTime time.Time `json:"readtime" xml:"readtime"`
-	ReadPos  int       `json:"readpos" xml:"readpos"`
+	Index    int       `json:"index" xml:"index"`
 	Reaction int       `json:"reaction" xml:"reaction"`
 }
 
@@ -49,6 +50,11 @@ func FileListHandler(c echo.Context) error {
 		return err
 	}
 	fmt.Printf("request=%v\n", *req)
+
+	//トークンからユーザー名を取得
+	user := c.Get("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userName := claims["name"].(string)
 
 	//ルートを取得
 	rootFolder, err := db.SelectFolderRoot()
@@ -102,7 +108,7 @@ func FileListHandler(c echo.Context) error {
 	}
 	for _, v := range bookList {
 		if index >= req.Offset && index < req.Offset+req.Limit {
-			files = append(files, createFileListResponceFromBook(v))
+			files = append(files, createFileListResponceFromBook(v, userName))
 		}
 		index++
 	}
@@ -129,7 +135,7 @@ func createFileListResponceFromUpperFolder(folder db.FolderTable) FileListFilesR
 		IsDir:    true,
 		ModTime:  folder.ModTime.UTC(),
 		ReadTime: unknownTime,
-		ReadPos:  0,
+		Index:    0,
 		Reaction: 0,
 	}
 }
@@ -144,16 +150,26 @@ func createFileListResponceFromFolder(folder db.FolderTable) FileListFilesRespon
 		IsDir:    true,
 		ModTime:  folder.ModTime.UTC(),
 		ReadTime: unknownTime,
-		ReadPos:  0,
+		Index:    0,
 		Reaction: 0,
 	}
 }
 
-func createFileListResponceFromBook(book db.BookTable) FileListFilesResponce {
+func createFileListResponceFromBook(book db.BookTable, userName string) FileListFilesResponce {
 	name := filepath.Base(book.FilePath)
+	history, err := db.SelectHistory(userName, book.Hash)
 	readTime := unknownTime
-	readPos := 0
+	index := 0
 	reaction := 0
+	if history.BookHash != "" {
+		//取得できた時
+		fmt.Printf("createFileListResponceFromBook SelectHistory index=%d", history.ReadPos)
+		readTime = history.ModTime
+		index = history.ReadPos
+		reaction = history.Reaction
+	} else {
+		fmt.Printf("createFileListResponceFromBook SelectHistory NG=%v", err)
+	}
 
 	return FileListFilesResponce{
 		Hash:     book.Hash,
@@ -163,7 +179,7 @@ func createFileListResponceFromBook(book db.BookTable) FileListFilesResponce {
 		IsDir:    false,
 		ModTime:  book.ModTime.UTC(),
 		ReadTime: readTime,
-		ReadPos:  readPos,
+		Index:    index,
 		Reaction: reaction,
 	}
 }

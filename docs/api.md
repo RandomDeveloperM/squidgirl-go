@@ -57,7 +57,7 @@ FORMAT: 1A
                 + isdir: false (boolean)  - フォルダかどうか（フォルダ時はtrue ファイル時はfalse）
                 + modtime: 2017-01-01T02:44:33 (datetime)  - 最終更新日
                 + readtime: 2017-05-06T23:44:33 (datetime)  - 最終閲覧日時
-                + readpos: 45 (number)  - 既読位置（フォルダ時は0）
+                + index: 45 (number)  - 既読位置（フォルダ時は0）
                 + reaction: 1 (number)  - リアクションタイプ（フォルダ時は0）
 
 ## 履歴一覧取得 [/api/historylist{?token}]
@@ -82,28 +82,22 @@ FORMAT: 1A
 
 # Group ページ関連API
 
-## サムネイル画像取得 [/api/thumbnail/{hash}]
+## サムネイル画像取得 [/api/thumbnail/{hash}{?base64}]
 ### GET
 
 * サムネイル画像を取得する
 
 + Parameters
     + hash: xxxxxxxxxxx (string, required) - ファイルハッシュ（フォルダも可能）
+    + base64: false (boolean, required) - base64文字列で返却するかどうか
 
-+ Response 200 (image/jpeg)
-
-## サムネイル画像取得 [/api/thumbnailbase64/{hash}]
-### GET
-
-* サムネイル画像をBASE64形式の文字列として取得する
-
-+ Parameters
-    + hash: xxxxxxxxxxx (string, required) - ファイルハッシュ（フォルダも可能）
++ Response 200 (image/jpeg) 
+    * base64 == false の時は画像データとして返す
 
 + Response 200 (text/plain)
-    * 画像データをBASE64でパッケージングした文字列
+    * base64 == true の時はBASE64文字列として返す
 
-## ページ画像取得 [/api/page{?hash,index,maxheight,maxwidth,base64}]
+## ページ画像取得 [/api/page/{hash}{?index,maxheight,maxwidth,base64}]
 ### POST
 
 * リアクション登録されたファイルを一覧で取得する
