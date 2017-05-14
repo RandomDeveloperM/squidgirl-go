@@ -91,10 +91,14 @@ func updateHistory(session *dbr.Session, record HistoryTable) error {
 	}
 	defer session.Close()
 
-	_, err = session.Update(historyTableName).
-		Set("read_pos", record.ReadPos).
-		Set("reaction", record.Reaction).
-		Set("mod_time", record.ModTime).
+	builder := session.Update(historyTableName)
+	if record.ReadPos != -1 {
+		builder = builder.Set("read_pos", record.ReadPos)
+	}
+	if record.Reaction != -1 {
+		builder = builder.Set("reaction", record.Reaction)
+	}
+	_, err = builder.Set("mod_time", record.ModTime).
 		Where("user_name = ? AND book_hash = ?", record.UserName, record.BookHash).
 		Exec()
 	if err != nil {

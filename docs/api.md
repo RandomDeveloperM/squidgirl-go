@@ -115,6 +115,10 @@ FORMAT: 1A
 + Response 200 (text/plain)
     * base64 == true の時はBASE64文字列として返す
 
++ Response 403 (text/plain)
+    * まだファイルの展開が行われていないとき返却する。事件経過後にアクセスを行うことで取得できる
+
+
 ## ページ状態保存 [/api/savebook{?hash,index,reaction}]
 ### POST
 

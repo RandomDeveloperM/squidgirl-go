@@ -24,7 +24,7 @@ func SaveBookHandler(c echo.Context) error {
 	if err := c.Bind(req); err != nil {
 		return err
 	}
-	fmt.Printf("request=%v\n", *req)
+	fmt.Printf("SaveBookHandler request=%v\n", *req)
 
 	//トークンからユーザー名を取得
 	user := c.Get("user").(*jwt.Token)
@@ -32,20 +32,36 @@ func SaveBookHandler(c echo.Context) error {
 	userName := claims["name"].(string)
 
 	//データの追加
-	history, _ := db.SelectHistory(userName, req.Hash)
-	if history.BookHash == "" {
-		err := db.InsertHistory(userName, req.Hash, req.Index, req.Reqction)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := db.UpdateHistory(userName, req.Hash, req.Index, req.Reqction)
-		if err != nil {
-			return err
-		}
+	err := updateHistory(userName, req.Hash, req.Index, req.Reqction)
+	if err != nil {
+		return err
 	}
 
 	response := new(SaveBookResponse)
 	response.Status = 0
 	return c.JSON(http.StatusOK, response)
+}
+
+func updateHistory(userName string, hash string, index int, reaction int) error {
+	history, _ := db.SelectHistory(userName, hash)
+	if history.BookHash == "" {
+		//未指定が指定されたときは初期値を設定
+		if index == -1 {
+			index = 0
+		}
+		if reaction == -1 {
+			reaction = 0
+		}
+		err := db.InsertHistory(userName, hash, index, reaction)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := db.UpdateHistory(userName, hash, index, reaction)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

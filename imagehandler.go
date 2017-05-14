@@ -8,6 +8,7 @@ import (
 
 	"os"
 
+	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 )
 
@@ -71,6 +72,17 @@ func PageHandler(c echo.Context) error {
 	}
 	fmt.Printf("request=%v\n", *req)
 
+	//トークンからユーザー名を取得
+	user := c.Get("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userName := claims["name"].(string)
+
+	//現在の読み込み位置を保存
+	err := updateHistory(userName, hash, req.Index, -1)
+	if err != nil {
+		return err
+	}
+
 	filePath, err := CreatePageFilePathFromHash(hash, req.Index, req.MaxHeight, req.MaxWidth)
 	if err != nil {
 		return err
@@ -86,3 +98,4 @@ func PageHandler(c echo.Context) error {
 
 	return c.File(filePath)
 }
+
