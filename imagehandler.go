@@ -12,6 +12,10 @@ import (
 	"github.com/labstack/echo"
 )
 
+const (
+	GetImageCacheCount = 3
+)
+
 type ThumbnailRequest struct {
 	Base64 bool `json:"base64" xml:"base64" form:"base64" query:"base64"`
 }
@@ -72,30 +76,34 @@ func PageHandler(c echo.Context) error {
 	}
 	fmt.Printf("request=%v\n", *req)
 
-	//トークンからユーザー名を取得
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(jwt.MapClaims)
-	userName := claims["name"].(string)
+	exist, filePath := IsExistPageFile(hash, req.Index, req.MaxHeight, req.MaxWidth)
+	if filePath == "" {
+		return c.NoContent(http.StatusBadRequest)
+	} else if exist && filePath != "" { //ファイルを返却する
+		//トークンからユーザー名を取得
+		user := c.Get("user").(*jwt.Token)
+		claims := user.Claims.(jwt.MapClaims)
+		userName := claims["name"].(string)
 
-	//現在の読み込み位置を保存
-	err := updateHistory(userName, hash, req.Index, -1)
-	if err != nil {
-		return err
-	}
-
-	filePath, err := CreatePageFilePathFromHash(hash, req.Index, req.MaxHeight, req.MaxWidth)
-	if err != nil {
-		return err
-	}
-
-	if req.Base64 {
-		imageBase64, err := convertImageToBase64(filePath)
+		//現在の読み込み位置を保存
+		err := updateHistory(userName, hash, req.Index, -1)
 		if err != nil {
 			return err
 		}
-		return c.String(http.StatusOK, imageBase64)
+
+		go UnzipPageFile(hash, req.Index, GetImageCacheCount, req.MaxHeight, req.MaxWidth)
+		if req.Base64 {
+			imageBase64, err := convertImageToBase64(filePath)
+			if err != nil {
+				return err
+			}
+			return c.String(http.StatusOK, imageBase64)
+		}
+
+		return c.File(filePath)
+	} else {
+		//ファイルがないので展開キャッシュする
+		go UnzipPageFile(hash, req.Index, GetImageCacheCount, req.MaxHeight, req.MaxWidth)
+		return c.NoContent(http.StatusForbidden)
 	}
-
-	return c.File(filePath)
 }
-
