@@ -7,6 +7,8 @@ import (
 	"image/jpeg"
 	"os"
 	"path/filepath"
+	"sync"
+	"time"
 
 	"github.com/nfnt/resize"
 
@@ -21,6 +23,11 @@ const (
 	ThumbnailJpegQuality = 70
 	PageDirPath          = "_temp/cache"
 	PageJpegQuality      = 70
+)
+
+var (
+	unzipMutex     *sync.Mutex = nil
+	unzipBusyParam             = ""
 )
 
 func CreateThumbnailFile(filePath string) error {
@@ -108,14 +115,14 @@ func getZipFileCount(filePath string) (int, error) {
 func CreatePageFile(hash string, index int, maxHeight int, maxWidth int) (string, error) {
 	bookRecord, err := db.SelectBookFromHash(hash)
 	if err != nil {
-		fmt.Printf("CreatePageFilePathFromHash err=%s\n", err)
+		fmt.Printf("CreatePageFile err=%s\n", err)
 		return "", err
 	}
 
 	zipFilePath := bookRecord.FilePath
 	imageFilePath, err := createPageFileFromZip(zipFilePath, index, maxHeight, maxWidth)
 	if err != nil {
-		fmt.Printf("CreatePageFilePathFromHash err=%s\n", err)
+		fmt.Printf("CreatePageFile err=%s\n", err)
 		return "", err
 	}
 
@@ -177,6 +184,10 @@ func convertResizeImageSize(maxHeight int, maxWidth int) (uint, uint) {
 
 func createPageFilePath(filePath string, index int, height uint, width uint) string {
 	hash := db.CreateBookHash(filePath)
+	return createPageFilePathFromHash(hash, index, height, width)
+}
+
+func createPageFilePathFromHash(hash string, index int, height uint, width uint) string {
 	dirPath := filepath.Join(PageDirPath, hash)
 
 	_, err := os.Stat(dirPath)
@@ -202,24 +213,48 @@ func IsExistPageFile(hash string, index int, maxHeight int, maxWidth int) (bool,
 	return false, pageFilePath //ファイルなし
 }
 
-func UnzipPageFile(hash string, index int, limit int, maxHeight int, maxWidth int) (int, error) {
-	fmt.Printf("UnzipPageFile start\n")
-	//time.Sleep(5 * time.Second)
+func UnzipPageFileMutex(hash string, index int, limit int, maxHeight int, maxWidth int) {
+	busyParam := fmt.Sprintf("%s_%d_%d_%d_%d", hash, index, limit, maxHeight, maxWidth)
+	if unzipBusyParam == busyParam {
+		fmt.Print("UnzipPageFileMutex 指定データは現在処理中...")
+		return
+	}
+
+	//展開処理は1つずつ順番に行うようロックする
+	if unzipMutex == nil {
+		unzipMutex = new(sync.Mutex)
+	}
+	unzipMutex.Lock()
+	defer unzipMutex.Unlock()
+
+	unzipBusyParam = busyParam
+	defer func() {
+		unzipBusyParam = ""
+	}()
+	unzipPageFile(hash, index, limit, maxHeight, maxWidth)
+}
+
+func unzipPageFile(hash string, index int, limit int, maxHeight int, maxWidth int) (int, error) {
+	fmt.Printf("unzipPageFile start hash=%s, index=%d\n", hash, index)
+	start := time.Now()
 	bookRecord, err := db.SelectBookFromHash(hash)
 	if err != nil {
-		fmt.Printf("UnzipPageFile ハッシュエラー\n")
+		fmt.Printf("unzipPageFile ハッシュエラー\n")
 		return 0, err
 	}
 
 	//ZIPファイルを開く
 	r, err := zip.OpenReader(bookRecord.FilePath)
 	if err != nil {
-		fmt.Printf("UnzipPageFile ZIPファイルオープンエラー err:%s\n", err)
+		fmt.Printf("unzipPageFile ZIPファイルオープンエラー err:%s\n", err)
 		return 0, err
 	}
 	defer r.Close()
 
 	count := 0
+	if limit == 0 {
+		limit = len(r.File) //最大数が未指定の時はすべてチェックする
+	}
 	height, width := convertResizeImageSize(maxHeight, maxWidth)
 	for i, imageFile := range r.File {
 		if i < index || i >= (index+limit) {
@@ -230,7 +265,7 @@ func UnzipPageFile(hash string, index int, limit int, maxHeight int, maxWidth in
 		}
 
 		//既にファイルがあるかどうか確認
-		outputFilePath := createPageFilePath(bookRecord.FilePath, i, height, width)
+		outputFilePath := createPageFilePathFromHash(hash, i, height, width)
 		_, err := os.Stat(outputFilePath)
 		if !os.IsNotExist(err) {
 			continue
@@ -239,7 +274,7 @@ func UnzipPageFile(hash string, index int, limit int, maxHeight int, maxWidth in
 		//ページ画像ファイル取得
 		rc, err := imageFile.Open()
 		if err != nil {
-			fmt.Printf("UnzipPageFile ZIP内ファイルオープンエラー err:%s\n", err)
+			fmt.Printf("unzipPageFile ZIP内ファイルオープンエラー err:%s\n", err)
 			continue
 		}
 		defer rc.Close()
@@ -247,12 +282,14 @@ func UnzipPageFile(hash string, index int, limit int, maxHeight int, maxWidth in
 		//指定したサイズに縮小
 		err = saveResizeImage(rc, width, height, PageJpegQuality, outputFilePath)
 		if err != nil {
+			fmt.Printf("unzipPageFile リサイズ失敗 err:%s\n", err)
 			continue
 		}
 		count++
-		fmt.Printf("UnzipPageFile saveResizeImage=%s\n", outputFilePath)
+		fmt.Printf("unzipPageFile saveResizeImage=%s\n", outputFilePath)
 	}
 
-	fmt.Printf("UnzipPageFile finish count=%d\n", count)
+	end := time.Now()
+	fmt.Printf("unzipPageFile finish count=%d time=%f\n", count, (end.Sub(start)).Seconds())
 	return count, nil
 }

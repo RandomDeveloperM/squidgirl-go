@@ -91,7 +91,8 @@ func PageHandler(c echo.Context) error {
 			return err
 		}
 
-		go UnzipPageFile(hash, req.Index, GetImageCacheCount, req.MaxHeight, req.MaxWidth)
+		//次のページ以降の展開キャッシュを行う
+		go UnzipPageFileMutex(hash, req.Index+1, GetImageCacheCount, req.MaxHeight, req.MaxWidth)
 		if req.Base64 {
 			imageBase64, err := convertImageToBase64(filePath)
 			if err != nil {
@@ -103,7 +104,7 @@ func PageHandler(c echo.Context) error {
 		return c.File(filePath)
 	} else {
 		//ファイルがないので展開キャッシュする
-		go UnzipPageFile(hash, req.Index, GetImageCacheCount, req.MaxHeight, req.MaxWidth)
+		go UnzipPageFileMutex(hash, req.Index, GetImageCacheCount, req.MaxHeight, req.MaxWidth)
 		return c.NoContent(http.StatusForbidden)
 	}
 }
