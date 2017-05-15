@@ -79,32 +79,36 @@ func PageHandler(c echo.Context) error {
 	exist, filePath := IsExistPageFile(hash, req.Index, req.MaxHeight, req.MaxWidth)
 	if filePath == "" {
 		return c.NoContent(http.StatusBadRequest)
-	} else if exist && filePath != "" { //ファイルを返却する
-		//トークンからユーザー名を取得
-		user := c.Get("user").(*jwt.Token)
-		claims := user.Claims.(jwt.MapClaims)
-		userName := claims["name"].(string)
-
-		//現在の読み込み位置を保存
-		err := updateHistory(userName, hash, req.Index, -1)
+	} else if !exist {
+		//ZIPから対象のファイルを作成する
+		_, err := UnzipPageFile(hash, req.Index, 1, req.MaxHeight, req.MaxWidth)
 		if err != nil {
 			return err
 		}
-
-		//次のページ以降の展開キャッシュを行う
-		go UnzipPageFileMutex(hash, req.Index+1, GetImageCacheCount, req.MaxHeight, req.MaxWidth)
-		if req.Base64 {
-			imageBase64, err := convertImageToBase64(filePath)
-			if err != nil {
-				return err
-			}
-			return c.String(http.StatusOK, imageBase64)
-		}
-
-		return c.File(filePath)
-	} else {
-		//ファイルがないので展開キャッシュする
-		go UnzipPageFileMutex(hash, req.Index, GetImageCacheCount, req.MaxHeight, req.MaxWidth)
-		return c.NoContent(http.StatusForbidden)
 	}
+
+	//トークンからユーザー名を取得
+	user := c.Get("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+	userName := claims["name"].(string)
+
+	//現在の読み込み位置を保存
+	err := updateHistory(userName, hash, req.Index, -1)
+	if err != nil {
+		return err
+	}
+
+	//次のページ以降の展開キャッシュを行う（非同期）
+	go UnzipPageFileMutex(hash, req.Index+1, GetImageCacheCount, req.MaxHeight, req.MaxWidth)
+
+	//データを返却
+	if req.Base64 {
+		imageBase64, err := convertImageToBase64(filePath)
+		if err != nil {
+			return err
+		}
+		return c.String(http.StatusOK, imageBase64)
+	}
+
+	return c.File(filePath)
 }
