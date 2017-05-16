@@ -55,6 +55,16 @@ func UpdateBook(folderHash string, filePath string, fileSize int, page int, modT
 	return nil
 }
 
+func DeleteBook(id int64) error {
+	fmt.Printf("DeleteBook id=%d\n", id)
+	err := deleteBook(nil, id)
+	if err != nil {
+		fmt.Printf("DeleteBook err=%s\n", err)
+		return err
+	}
+	return nil
+}
+
 func SelectBookFromHash(hash string) (BookTable, error) {
 	fmt.Printf("SelectBook hash=%s\n", hash)
 	var result BookTable
@@ -85,6 +95,21 @@ func SelectBookListFromFolder(folderHash string) ([]BookTable, error) {
 		return nil, err
 	}
 
+	return recordList, nil
+}
+
+func SelectBookAll() ([]BookTable, error) {
+	fmt.Printf("SelectBookAll\n")
+	recordList, err := selectBookListAll(nil)
+	if err != nil {
+		fmt.Printf("SelectBookAll err=%s\n", err)
+		return nil, err
+	}
+
+	if len(recordList) == 0 {
+		fmt.Printf("SelectBookAll len==0\n")
+		return recordList, nil
+	}
 	return recordList, nil
 }
 
@@ -125,6 +150,21 @@ func updateBook(session *dbr.Session, record BookTable) error {
 	return nil
 }
 
+func deleteBook(session *dbr.Session, id int64) error {
+	session, err := ConnectDBRecheck(session)
+	if err != nil {
+		return nil
+	}
+	defer session.Close()
+	_, err = session.DeleteFrom(bookTableName).
+		Where("id = ?", id).
+		Exec()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func selectBookList(session *dbr.Session, hash string) ([]BookTable, error) {
 	session, err := ConnectDBRecheck(session)
 	if err != nil {
@@ -150,6 +190,22 @@ func selectBookListFromFolder(session *dbr.Session, folderHash string) ([]BookTa
 
 	var resultList []BookTable
 	_, err = session.Select("*").From(bookTableName).Where("folder_hash = ?", folderHash).Load(&resultList)
+	if err != nil {
+		return nil, err
+	}
+
+	return resultList, nil
+}
+
+func selectBookListAll(session *dbr.Session) ([]BookTable, error) {
+	session, err := ConnectDBRecheck(session)
+	if err != nil {
+		return nil, err
+	}
+	defer session.Close()
+
+	var resultList []BookTable
+	_, err = session.Select("*").From(bookTableName).Load(&resultList)
 	if err != nil {
 		return nil, err
 	}

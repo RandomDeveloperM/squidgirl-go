@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"time"
 
@@ -11,34 +12,64 @@ import (
 	"github.com/mryp/squidgirl-go/db"
 )
 
-var fileWatcherBusy = false
-var fileWatcherTargetExt = []string{".zip"}
+var (
+	fileWatcher          *FileWatcher = nil
+	fileWatcherTargetExt []string     = []string{".zip"}
+)
 
-func RegisterFileWatchar() {
-	if fileWatcherBusy {
-		fmt.Printf("RegisterFileWatchar is bussy...\n")
-		return
+type FileWatcher struct {
+	mutex *sync.Mutex
+}
+
+type FileWatcherFunc interface {
+	RegistFile()
+	ClearFile()
+	ClearCache()
+}
+
+func NewFileWatcher() *FileWatcher {
+	if fileWatcher != nil {
+		return fileWatcher
 	}
-	fileWatcherBusy = true
-	fmt.Printf("RegisterFileWatchar start\n")
+	watcher := new(FileWatcher)
+	watcher.mutex = new(sync.Mutex)
+	return watcher
+}
 
+//AddFile 新規に存在するフォルダ・ファイルを追加する
+func (watcher *FileWatcher) RegistFile() {
+	//ロックをかける
+	watcher.mutex.Lock()
+	defer watcher.mutex.Unlock()
+
+	//ファイル探索開始
 	baseDir := config.GetConfig().File.WatchDir
 	err := filepath.Walk(baseDir, registFileWalk)
 	if err != nil {
-		fmt.Printf("RegisterFileWatchar err=%v\n", err)
 		return
 	}
+}
 
-	fmt.Printf("RegisterFileWatchar finish\n")
-	fileWatcherBusy = false
+//ClearFile 登録されているファイル・フォルダが存在しなかった時は削除する
+func (watcher *FileWatcher) ClearFile() {
+	watcher.mutex.Lock()
+	defer watcher.mutex.Unlock()
+
+	clearFolderAll()
+	clearBookAll()
+}
+
+//ClearCache 使用頻度が低いキャッシュファイルを削除する
+func (watcher *FileWatcher) ClearCache() {
+	watcher.mutex.Lock()
+	defer watcher.mutex.Unlock()
+
 }
 
 func registFileWalk(path string, info os.FileInfo, err error) error {
 	if info.IsDir() {
-		fmt.Printf("registFileWalk dir=%s time=%s\n", path, info.ModTime())
 		registDirInfo(path, info)
 	} else {
-		fmt.Printf("registFileWalk file=%s time=%s\n", path, info.ModTime())
 		registFileInfo(path, info)
 	}
 	return nil
@@ -98,9 +129,40 @@ func registFileZipInfo(path string, info os.FileInfo) {
 func isEquleDateTime(t1 time.Time, t2 time.Time) bool {
 	t1Text := t1.UTC().Format("2006-01-02 15:04")
 	t2Text := t2.UTC().Format("2006-01-02 15:04")
-	fmt.Printf("isEquleDateTime t1=%s t2=%s\n", t1Text, t2Text)
 	if t1Text == t2Text {
 		return true
 	}
 	return false
+}
+
+func clearFolderAll() {
+	folderList, err := db.SelectFolderAll()
+	if err != nil {
+		return
+	}
+
+	for _, folder := range folderList {
+		_, err := os.Stat(folder.FilePath)
+		if !os.IsNotExist(err) {
+			continue //フォルダあり
+		}
+
+		db.DeleteFolder(folder.ID)
+	}
+}
+
+func clearBookAll() {
+	bookList, err := db.SelectBookAll()
+	if err != nil {
+		return
+	}
+
+	for _, book := range bookList {
+		_, err := os.Stat(book.FilePath)
+		if !os.IsNotExist(err) {
+			continue //フォルダあり
+		}
+
+		db.DeleteBook(book.ID)
+	}
 }

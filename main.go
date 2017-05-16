@@ -24,16 +24,18 @@ func main() {
 
 func startCrontab() {
 	interval := config.GetConfig().File.WatchInterval
+	fileWatcher = NewFileWatcher()
 	if interval > 0 {
 		c := cron.New()
 		format := fmt.Sprintf("0 */%d * * * *", config.GetConfig().File.WatchInterval)
 		c.AddFunc(format, func() {
-			fmt.Println("CRON起動（分）")
-			RegisterFileWatchar()
+			fileWatcher.RegistFile()
+			fileWatcher.ClearFile()
 		})
 		c.Start()
 	} else {
-		RegisterFileWatchar() //最初だけ呼び出す
+		fileWatcher.RegistFile() //最初だけ呼び出す
+		fileWatcher.ClearFile()
 	}
 }
 

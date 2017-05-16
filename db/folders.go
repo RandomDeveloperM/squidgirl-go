@@ -54,6 +54,17 @@ func UpdateFolder(filePath string, parentHash string, modTime time.Time) error {
 	return nil
 }
 
+func DeleteFolder(id int64) error {
+	fmt.Printf("DeleteFolder id=%d\n", id)
+
+	err := deleteFolder(nil, id)
+	if err != nil {
+		fmt.Printf("DeleteFolder err=%s\n", err)
+		return err
+	}
+	return nil
+}
+
 func SelectFolder(filePath string) (FolderTable, error) {
 	fmt.Printf("SelectFolder filePath=%s\n", filePath)
 	var result FolderTable
@@ -103,6 +114,21 @@ func SelectFolderRoot() (FolderTable, error) {
 	return SelectFolder(config.GetConfig().File.WatchDir)
 }
 
+func SelectFolderAll() ([]FolderTable, error) {
+	fmt.Printf("SelectFolderAll\n")
+	recordList, err := selectFolderListAll(nil)
+	if err != nil {
+		fmt.Printf("SelectFolderAll err=%s\n", err)
+		return nil, err
+	}
+
+	if len(recordList) == 0 {
+		fmt.Printf("SelectFolderAll len==0\n")
+		return recordList, nil
+	}
+	return recordList, nil
+}
+
 func insertFolder(session *dbr.Session, record FolderTable) error {
 	session, err := ConnectDBRecheck(session)
 	if err != nil {
@@ -138,6 +164,21 @@ func updateFolder(session *dbr.Session, record FolderTable) error {
 	return nil
 }
 
+func deleteFolder(session *dbr.Session, id int64) error {
+	session, err := ConnectDBRecheck(session)
+	if err != nil {
+		return nil
+	}
+	defer session.Close()
+	_, err = session.DeleteFrom(folderTableName).
+		Where("id = ?", id).
+		Exec()
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func selectFolderList(session *dbr.Session, hash string) ([]FolderTable, error) {
 	session, err := ConnectDBRecheck(session)
 	if err != nil {
@@ -163,6 +204,22 @@ func selectFolderListFromParent(session *dbr.Session, parentHash string) ([]Fold
 
 	var resultList []FolderTable
 	_, err = session.Select("*").From(folderTableName).Where("parent_hash = ?", parentHash).Load(&resultList)
+	if err != nil {
+		return nil, err
+	}
+
+	return resultList, nil
+}
+
+func selectFolderListAll(session *dbr.Session) ([]FolderTable, error) {
+	session, err := ConnectDBRecheck(session)
+	if err != nil {
+		return nil, err
+	}
+	defer session.Close()
+
+	var resultList []FolderTable
+	_, err = session.Select("*").From(folderTableName).Load(&resultList)
 	if err != nil {
 		return nil, err
 	}
