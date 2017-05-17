@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"sort"
 	"sync"
 
 	"time"
@@ -18,7 +20,8 @@ var (
 )
 
 type FileWatcher struct {
-	mutex *sync.Mutex
+	mutex         *sync.Mutex
+	maxCacheCount int
 }
 
 type FileWatcherFunc interface {
@@ -31,8 +34,10 @@ func NewFileWatcher() *FileWatcher {
 	if fileWatcher != nil {
 		return fileWatcher
 	}
+
 	watcher := new(FileWatcher)
 	watcher.mutex = new(sync.Mutex)
+	watcher.maxCacheCount = config.GetConfig().File.CacheMaxCount
 	return watcher
 }
 
@@ -64,6 +69,7 @@ func (watcher *FileWatcher) ClearCache() {
 	watcher.mutex.Lock()
 	defer watcher.mutex.Unlock()
 
+	clearOldCacheAll(watcher.maxCacheCount)
 }
 
 func registFileWalk(path string, info os.FileInfo, err error) error {
@@ -164,5 +170,33 @@ func clearBookAll() {
 		}
 
 		db.DeleteBook(book.ID)
+	}
+}
+
+func clearOldCacheAll(maxCount int) {
+	fileInfoList, err := ioutil.ReadDir(PageDirPath)
+	if err != nil {
+		return
+	}
+	sort.Slice(fileInfoList, func(i, j int) bool {
+		return fileInfoList[i].ModTime().Unix() > fileInfoList[j].ModTime().Unix()
+	})
+
+	for i, dir := range fileInfoList {
+		fmt.Printf("clearOldCacheAll [%v] %s\n", dir.ModTime(), dir.Name())
+		if !dir.IsDir() {
+			continue
+		}
+		if i < maxCount {
+			continue
+		}
+
+		dirPath := filepath.Join(PageDirPath, dir.Name())
+		err := os.RemoveAll(dirPath)
+		if err != nil {
+			fmt.Printf("clearOldCacheAll RemoveAll err=%s", err)
+			continue
+		}
+		fmt.Printf("clearOldCacheAll Remove OK")
 	}
 }

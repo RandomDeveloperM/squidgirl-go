@@ -27,15 +27,17 @@ func startCrontab() {
 	fileWatcher = NewFileWatcher()
 	if interval > 0 {
 		c := cron.New()
-		format := fmt.Sprintf("0 */%d * * * *", config.GetConfig().File.WatchInterval)
+		format := fmt.Sprintf("0 */%d * * * *", config.GetConfig().File.WatchInterval) //分単位指定
 		c.AddFunc(format, func() {
 			fileWatcher.RegistFile()
 			fileWatcher.ClearFile()
+			fileWatcher.ClearCache()
 		})
 		c.Start()
 	} else {
-		fileWatcher.RegistFile() //最初だけ呼び出す
+		fileWatcher.RegistFile()
 		fileWatcher.ClearFile()
+		fileWatcher.ClearCache()
 	}
 }
 

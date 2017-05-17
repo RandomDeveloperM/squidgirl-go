@@ -19,3 +19,4 @@ TokenSalt  = "Zzt5mfGTDYmFcGEYUzBbcPRqUUPR9Bdr7SJwWSxh"
 [File]
 WatchDir      = "_data"
 WatchInterval = 0
+CacheMaxCount = 5
