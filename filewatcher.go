@@ -41,6 +41,14 @@ func NewFileWatcher() *FileWatcher {
 	return watcher
 }
 
+func (watcher *FileWatcher) StartBackgroundTask() {
+	go func() {
+		watcher.ClearFile()
+		watcher.ClearCache()
+		watcher.RegistFile()
+	}()
+}
+
 //AddFile 新規に存在するフォルダ・ファイルを追加する
 func (watcher *FileWatcher) RegistFile() {
 	//ロックをかける

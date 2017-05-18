@@ -29,16 +29,13 @@ func startCrontab() {
 		c := cron.New()
 		format := fmt.Sprintf("0 */%d * * * *", config.GetConfig().File.WatchInterval) //分単位指定
 		c.AddFunc(format, func() {
-			fileWatcher.RegistFile()
-			fileWatcher.ClearFile()
-			fileWatcher.ClearCache()
+			fileWatcher.StartBackgroundTask()
 		})
 		c.Start()
-	} else {
-		fileWatcher.RegistFile()
-		fileWatcher.ClearFile()
-		fileWatcher.ClearCache()
 	}
+
+	//起動時は最初に処理を実行する
+	fileWatcher.StartBackgroundTask()
 }
 
 func startEchoServer() {
