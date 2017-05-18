@@ -123,19 +123,22 @@ func registFileZipInfo(path string, info os.FileInfo) {
 	}
 	dirHash := folder.Hash
 
+	thum := NewThumbnail()
 	book, _ := db.SelectBook(path)
 	if book.Hash == "" {
 		//新規登録
 		page, _ := GetArchivePageCount(path)
-		CreateThumbnailFile(path)
+		thum.CreateFile(path)
 		db.InsertBook(dirHash, path, int(info.Size()), page, info.ModTime())
 	} else if !isEquleDateTime(book.ModTime, info.ModTime()) {
 		//更新あり
 		page, _ := GetArchivePageCount(path)
-		CreateThumbnailFile(path)
+		thum.CreateFile(path)
 		db.UpdateBook(dirHash, path, int(info.Size()), page, info.ModTime())
 	} else {
-		fmt.Printf("registFileZipInfo file exists hash=%s\n", book.Hash)
+		if !thum.IsExist(thum.GetFilePathFromHash(book.Hash)) {
+			thum.CreateFile(path)
+		}
 	}
 }
 

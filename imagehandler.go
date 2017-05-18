@@ -22,8 +22,8 @@ type ThumbnailRequest struct {
 
 type PageRequest struct {
 	Index     int  `json:"index" xml:"index" form:"index" query:"index"`
-	MaxHeight int  `json:"maxheight" xml:"maxheight" form:"maxheight" query:"maxheight"`
-	MaxWidth  int  `json:"maxwidth" xml:"maxwidth" form:"maxwidth" query:"maxwidth"`
+	MaxHeight uint `json:"maxheight" xml:"maxheight" form:"maxheight" query:"maxheight"`
+	MaxWidth  uint `json:"maxwidth" xml:"maxwidth" form:"maxwidth" query:"maxwidth"`
 	Base64    bool `json:"base64" xml:"base64" form:"base64" query:"base64"`
 }
 
@@ -37,7 +37,8 @@ func ThumbnailHandler(c echo.Context) error {
 	}
 	fmt.Printf("request=%v\n", *req)
 
-	thumImagePath := CreateThumFilePathFromHash(hash)
+	thum := NewThumbnail()
+	thumImagePath := thum.GetFilePathFromHash(hash)
 	_, err := os.Stat(thumImagePath)
 	if os.IsNotExist(err) {
 		//画像なしを返却する
@@ -95,6 +96,7 @@ func PageHandler(c echo.Context) error {
 	//現在の読み込み位置を保存
 	err := updateHistory(userName, hash, req.Index, -1)
 	if err != nil {
+		fmt.Printf("PageHandler 1 err=%s\n", err)
 		return err
 	}
 
@@ -105,6 +107,7 @@ func PageHandler(c echo.Context) error {
 	if req.Base64 {
 		imageBase64, err := convertImageToBase64(filePath)
 		if err != nil {
+			fmt.Printf("PageHandler 2 err=%s\n", err)
 			return err
 		}
 		return c.String(http.StatusOK, imageBase64)

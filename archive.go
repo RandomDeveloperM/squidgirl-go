@@ -3,26 +3,17 @@ package main
 import (
 	"archive/zip"
 	"fmt"
-	"image"
-	"image/jpeg"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
-	"github.com/nfnt/resize"
-
-	"io"
-
 	"github.com/mryp/squidgirl-go/db"
 )
 
 const (
-	ThumbnailDirPath     = "_temp/thumbnail"
-	ThumbnailWidth       = 512
-	ThumbnailJpegQuality = 70
-	PageDirPath          = "_temp/cache"
-	PageJpegQuality      = 70
+	PageDirPath     = "_temp/cache"
+	PageJpegQuality = 70
 )
 
 var (
@@ -30,73 +21,9 @@ var (
 	unzipBusyParam             = ""
 )
 
-func CreateThumbnailFile(filePath string) error {
-	fmt.Printf("CreateThumbnailFile filePath=%s\n", filePath)
-	return createThumbnailFileFromZip(filePath)
-}
-
 func GetArchivePageCount(filePath string) (int, error) {
 	fmt.Printf("GetArchivePageCount filePath=%s\n", filePath)
 	return getZipFileCount(filePath)
-}
-
-func createThumbnailFileFromZip(filePath string) error {
-	//ZIPファイルを開く
-	r, err := zip.OpenReader(filePath)
-	if err != nil {
-		fmt.Printf("ZIPファイルオープンエラー err:%s\n", err)
-		return err
-	}
-	defer r.Close()
-
-	for _, f := range r.File {
-		//ZIPファイル内のファイルを開く
-		rc, err := f.Open()
-		if err != nil {
-			fmt.Printf("ZIP内ファイルオープンエラー err:%s\n", err)
-			continue
-		}
-		defer rc.Close()
-
-		if !f.FileInfo().IsDir() {
-			//最初のページファイルをサムネイル画像として作成する
-			saveResizeImage(rc, ThumbnailWidth, 0, ThumbnailJpegQuality, CreateThumFilePath(filePath))
-			break
-		}
-	}
-
-	return nil
-}
-
-func saveResizeImage(r io.Reader, width uint, height uint, jpegQuality int, outputPath string) error {
-	//画像読み込み
-	image, _, err := image.Decode(r)
-	if err != nil {
-		fmt.Printf("画像読み込みエラー err:%s\n", err)
-		return err
-	}
-	resizeImage := resize.Resize(width, height, image, resize.Lanczos3)
-
-	//書き込み用ファイル作成
-	outFile, err := os.Create(outputPath)
-	if err != nil {
-		fmt.Printf("ファイル作成エラー err:%s\n", err)
-		return err
-	}
-	defer outFile.Close()
-
-	//JPEGとして保存
-	opts := &jpeg.Options{Quality: jpegQuality}
-	jpeg.Encode(outFile, resizeImage, opts)
-	return nil
-}
-
-func CreateThumFilePath(filePath string) string {
-	return CreateThumFilePathFromHash(db.CreateBookHash(filePath))
-}
-
-func CreateThumFilePathFromHash(hash string) string {
-	return filepath.Join(ThumbnailDirPath, hash+".jpg")
 }
 
 //ZIPファイル内のファイル数を取得する
@@ -112,7 +39,7 @@ func getZipFileCount(filePath string) (int, error) {
 	return count, nil
 }
 
-func CreatePageFile(hash string, index int, maxHeight int, maxWidth int) (string, error) {
+func CreatePageFile(hash string, index int, maxHeight uint, maxWidth uint) (string, error) {
 	bookRecord, err := db.SelectBookFromHash(hash)
 	if err != nil {
 		fmt.Printf("CreatePageFile err=%s\n", err)
@@ -129,11 +56,9 @@ func CreatePageFile(hash string, index int, maxHeight int, maxWidth int) (string
 	return imageFilePath, nil
 }
 
-func createPageFileFromZip(filePath string, index int, maxHeight int, maxWidth int) (string, error) {
-	height, width := convertResizeImageSize(maxHeight, maxWidth)
-
+func createPageFileFromZip(filePath string, index int, maxHeight uint, maxWidth uint) (string, error) {
 	//キャッシュされているかどうか確認
-	outputPath := createPageFilePath(filePath, index, height, width)
+	outputPath := createPageFilePath(filePath, index, maxHeight, maxWidth)
 	_, err := os.Stat(outputPath)
 	if !os.IsNotExist(err) {
 		fmt.Printf("ファイルがキャッシュに見つかった path=%s\n", outputPath)
@@ -166,20 +91,9 @@ func createPageFileFromZip(filePath string, index int, maxHeight int, maxWidth i
 	defer rc.Close()
 
 	//指定したサイズに縮小
-	saveResizeImage(rc, width, height, PageJpegQuality, outputPath)
+	resize := NewResize(uint(maxHeight), uint(maxWidth), PageJpegQuality)
+	resize.ResizeFile(rc, outputPath)
 	return outputPath, nil
-}
-
-func convertResizeImageSize(maxHeight int, maxWidth int) (uint, uint) {
-	width := uint(maxWidth)
-	height := uint(maxHeight)
-	if maxWidth > maxHeight {
-		width = 0 //横幅は自動
-	} else if maxHeight > maxWidth {
-		height = 0 //高さは自動
-	}
-
-	return height, width
 }
 
 func createPageFilePath(filePath string, index int, height uint, width uint) string {
@@ -197,14 +111,14 @@ func createPageFilePathFromHash(hash string, index int, height uint, width uint)
 	return filepath.Join(dirPath, fmt.Sprintf("%d_%d_%d.jpg", index, height, width))
 }
 
-func IsExistPageFile(hash string, index int, maxHeight int, maxWidth int) (bool, string) {
+func IsExistPageFile(hash string, index int, maxHeight uint, maxWidth uint) (bool, string) {
 	bookRecord, err := db.SelectBookFromHash(hash)
 	if err != nil {
 		return false, "" //取得失敗
 	}
 
-	height, width := convertResizeImageSize(maxHeight, maxWidth)
-	pageFilePath := createPageFilePath(bookRecord.FilePath, index, height, width)
+	resize := NewResize(maxHeight, maxWidth, PageJpegQuality)
+	pageFilePath := createPageFilePath(bookRecord.FilePath, index, resize.height, resize.width)
 	_, err = os.Stat(pageFilePath)
 	if !os.IsNotExist(err) {
 		return true, pageFilePath //ファイルあり
@@ -213,7 +127,7 @@ func IsExistPageFile(hash string, index int, maxHeight int, maxWidth int) (bool,
 	return false, pageFilePath //ファイルなし
 }
 
-func UnzipPageFileMutex(hash string, index int, limit int, maxHeight int, maxWidth int) {
+func UnzipPageFileMutex(hash string, index int, limit int, maxHeight uint, maxWidth uint) {
 	busyParam := fmt.Sprintf("%s_%d_%d_%d_%d", hash, index, limit, maxHeight, maxWidth)
 	if unzipBusyParam == busyParam {
 		fmt.Print("UnzipPageFileMutex 指定データは現在処理中...")
@@ -234,7 +148,7 @@ func UnzipPageFileMutex(hash string, index int, limit int, maxHeight int, maxWid
 	UnzipPageFile(hash, index, limit, maxHeight, maxWidth)
 }
 
-func UnzipPageFile(hash string, index int, limit int, maxHeight int, maxWidth int) (int, error) {
+func UnzipPageFile(hash string, index int, limit int, maxHeight uint, maxWidth uint) (int, error) {
 	fmt.Printf("UnzipPageFile start hash=%s, index=%d\n", hash, index)
 	//time.Sleep(3 * time.Second)
 	start := time.Now()
@@ -253,7 +167,6 @@ func UnzipPageFile(hash string, index int, limit int, maxHeight int, maxWidth in
 	defer r.Close()
 
 	count := 0
-	height, width := convertResizeImageSize(maxHeight, maxWidth)
 	for i, imageFile := range r.File {
 		if i < index || i >= (index+limit) {
 			continue
@@ -261,9 +174,10 @@ func UnzipPageFile(hash string, index int, limit int, maxHeight int, maxWidth in
 		if imageFile.FileInfo().IsDir() {
 			continue
 		}
+		resize := NewResize(maxHeight, maxWidth, PageJpegQuality)
 
 		//既にファイルがあるかどうか確認
-		outputFilePath := createPageFilePathFromHash(hash, i, height, width)
+		outputFilePath := createPageFilePathFromHash(hash, i, resize.height, resize.width)
 		_, err := os.Stat(outputFilePath)
 		if !os.IsNotExist(err) {
 			continue
@@ -278,7 +192,7 @@ func UnzipPageFile(hash string, index int, limit int, maxHeight int, maxWidth in
 		defer rc.Close()
 
 		//指定したサイズに縮小
-		err = saveResizeImage(rc, width, height, PageJpegQuality, outputFilePath)
+		err = resize.ResizeFile(rc, outputFilePath)
 		if err != nil {
 			fmt.Printf("UnzipPageFile リサイズ失敗 err:%s\n", err)
 			continue
