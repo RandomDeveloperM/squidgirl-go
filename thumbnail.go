@@ -6,44 +6,37 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/mryp/squidgirl-go/config"
 	"github.com/mryp/squidgirl-go/db"
 )
 
-const (
-	defThumbnailDirPath     = "_temp/thumbnail"
-	defThumbnailWidth       = 512
-	defThumbnailJpegQuality = 70
-)
-
+//Thumbnail はサムネイル変換情報を保持する
 type Thumbnail struct {
 	dirPath     string
 	width       uint
 	jpegQuality int
 }
 
-type ThumbnailFunc interface {
-	GetFilePathFromHash(hash string)
-	GetFilePath(bookPath string)
-	IsExist(filePath string)
-	CreateFile(bookPath string)
-}
-
+//NewThumbnail はサムネイル構造体をデフォルト値をセットして返す
 func NewThumbnail() *Thumbnail {
 	thum := new(Thumbnail)
-	thum.dirPath = defThumbnailDirPath
-	thum.width = defThumbnailWidth
-	thum.jpegQuality = defThumbnailJpegQuality
+	thum.dirPath = config.GetConfig().File.ThumbnailDirPath
+	thum.width = uint(config.GetConfig().File.ThumbnailWidth)
+	thum.jpegQuality = config.GetConfig().File.ThumbnailJpegQuality
 	return thum
 }
 
+//GetFilePathFromHash はアーカイブハッシュからサムネイルのファイルパスを取得する
 func (thum *Thumbnail) GetFilePathFromHash(hash string) string {
 	return filepath.Join(thum.dirPath, hash+".jpg")
 }
 
+//GetFilePath はアーカイブのファイルパスからサムネイルのファイルパスを取得する
 func (thum *Thumbnail) GetFilePath(bookPath string) string {
 	return thum.GetFilePathFromHash(db.CreateBookHash(bookPath))
 }
 
+//IsExist は指定したサムネイルファイルが存在するかどうかを返す
 func (thum *Thumbnail) IsExist(filePath string) bool {
 	_, err := os.Stat(filePath)
 	if os.IsNotExist(err) {
@@ -53,6 +46,7 @@ func (thum *Thumbnail) IsExist(filePath string) bool {
 	return true
 }
 
+//CreateFile はアーカイブファイルの先頭ファイル画像をサムネイル画像として保存する
 func (thum *Thumbnail) CreateFile(bookPath string) error {
 	//ZIPファイルを開く
 	r, err := zip.OpenReader(bookPath)

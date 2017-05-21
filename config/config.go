@@ -45,9 +45,15 @@ type LoginConfig struct {
 
 //FileConfig ファイル関連設定情報
 type FileConfig struct {
-	WatchDir      string
-	WatchInterval int
-	CacheMaxCount int
+	WatchDir             string
+	WatchInterval        int
+	CacheMaxCount        int
+	PreCacheImageCount   int
+	PageDirPath          string
+	PageJpegQuality      int
+	ThumbnailDirPath     string
+	ThumbnailWidth       int
+	ThumbnailJpegQuality int
 }
 
 // 設定情報保持変数
@@ -56,7 +62,7 @@ var envConfig = EnvConfig{
 	Server: ServerEnvConfig{PortNum: 8080, HostName: "localhost:8080"},
 	DB:     DBEnvConfig{UserID: "root", Password: "root", HostName: "127.0.0.1", PortNumber: "3306", Name: "squidgirl"},
 	Login:  LoginConfig{PassSalt: "Cp0xtdDLsHpdadfxysuemBr5a55EDgVv4hzZGyRP", TokenSalt: "Jz2tS4HdzWRNdWbD46SemE6Eh5LZUY2EVGcpkbRx"},
-	File:   FileConfig{WatchDir: "", WatchInterval: 60, CacheMaxCount: 30},
+	File:   FileConfig{WatchDir: "", WatchInterval: 60, CacheMaxCount: 30, PreCacheImageCount: 3, PageDirPath: "_temp/cache", PageJpegQuality: 70, ThumbnailDirPath: "_temp/thumbnail", ThumbnailWidth: 512, ThumbnailJpegQuality: 70},
 }
 
 //init 初期化

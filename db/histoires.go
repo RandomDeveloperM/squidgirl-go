@@ -20,10 +20,26 @@ type HistoryTable struct {
 	ModTime  time.Time `db:"mod_time"`
 }
 
-func InsertHistory(userName string, bookHash string, readPos int, reaction int) error {
-	fmt.Printf("InsertHistory userName=%s, bookHash=%s, readPos=%d, reaction=%d\n", userName, bookHash, readPos, reaction)
+func InsertHistory(userName string, bookHash string, readPos int, reaction int, isExistUpdate bool) error {
+	fmt.Printf("InsertHistory userName=%s, bookHash=%s, readPos=%d, reaction=%d isExistUpdate=%v\n",
+		userName, bookHash, readPos, reaction, isExistUpdate)
 	if userName == "" || bookHash == "" {
 		return fmt.Errorf("パラメーターエラー")
+	}
+	//未指定が指定されたときは初期値を設定
+	if readPos == -1 {
+		readPos = 0
+	}
+	if reaction == -1 {
+		reaction = 0
+	}
+
+	if isExistUpdate {
+		//データが存在するときは更新する
+		history, _ := SelectHistory(userName, bookHash)
+		if history.BookHash != "" {
+			return UpdateHistory(userName, bookHash, readPos, reaction)
+		}
 	}
 
 	record := HistoryTable{UserName: userName, BookHash: bookHash, ReadPos: readPos, Reaction: reaction, ModTime: time.Now()}

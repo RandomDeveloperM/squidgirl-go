@@ -17,6 +17,12 @@ PassSalt   = "1uwnxGUW71XMMeqABZnC41Bnh59L7E9k0aUK6T7C"
 TokenSalt  = "Zzt5mfGTDYmFcGEYUzBbcPRqUUPR9Bdr7SJwWSxh"
 
 [File]
-WatchDir      = "_data"
-WatchInterval = 0
-CacheMaxCount = 5
+WatchDir             = "_data"
+WatchInterval        = 60
+CacheMaxCount        = 5
+PreCacheImageCount   = 3
+PageDirPath          = "_temp/cache"
+PageJpegQuality      = 70
+ThumbnailDirPath     = "_temp/thumbnail"
+ThumbnailWidth       = 512
+ThumbnailJpegQuality = 70

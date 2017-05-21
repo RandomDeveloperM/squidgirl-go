@@ -56,7 +56,7 @@ func startEchoServer() {
 		return c.String(http.StatusOK, "squidgirl-go")
 	})
 	e.POST("/login", LoginHandler)
-	e.POST("/createuser", CreateUserHandler)
+	e.GET("/createuser", CreateUserHandler)
 
 	apiGroup := e.Group("/api")
 	apiGroup.Use(middleware.JWT([]byte(config.GetConfig().Login.TokenSalt)))

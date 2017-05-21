@@ -9,16 +9,19 @@ import (
 	"github.com/mryp/squidgirl-go/db"
 )
 
+//SaveBookRequest はアーカイブ情報を保存するリクエストデータを保持する
 type SaveBookRequest struct {
 	Hash     string `json:"hash" xml:"hash" form:"hash" query:"hash"`
 	Index    int    `json:"index" xml:"index" form:"index" query:"index"`
 	Reqction int    `json:"reaction" xml:"reaction" form:"reaction" query:"reaction"`
 }
 
+//SaveBookResponse はアーカイブ情報を保持する処理のレスポンスデータを保持する
 type SaveBookResponse struct {
 	Status int `json:"status" xml:"status"`
 }
 
+//SaveBookHandler はアーカイブ情報を保存してレスポンスを返す
 func SaveBookHandler(c echo.Context) error {
 	req := new(SaveBookRequest)
 	if err := c.Bind(req); err != nil {
@@ -32,7 +35,7 @@ func SaveBookHandler(c echo.Context) error {
 	userName := claims["name"].(string)
 
 	//データの追加
-	err := updateHistory(userName, req.Hash, req.Index, req.Reqction)
+	err := db.InsertHistory(userName, req.Hash, req.Index, req.Reqction, true)
 	if err != nil {
 		return err
 	}
@@ -40,28 +43,4 @@ func SaveBookHandler(c echo.Context) error {
 	response := new(SaveBookResponse)
 	response.Status = 0
 	return c.JSON(http.StatusOK, response)
-}
-
-func updateHistory(userName string, hash string, index int, reaction int) error {
-	history, _ := db.SelectHistory(userName, hash)
-	if history.BookHash == "" {
-		//未指定が指定されたときは初期値を設定
-		if index == -1 {
-			index = 0
-		}
-		if reaction == -1 {
-			reaction = 0
-		}
-		err := db.InsertHistory(userName, hash, index, reaction)
-		if err != nil {
-			return err
-		}
-	} else {
-		err := db.UpdateHistory(userName, hash, index, reaction)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }

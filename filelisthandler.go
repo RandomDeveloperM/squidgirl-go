@@ -12,18 +12,18 @@ import (
 	"github.com/mryp/squidgirl-go/db"
 )
 
-//未設定時の時刻
-var unknownTime = time.Unix(0, 0).UTC()
+var (
+	unknownTime = time.Unix(0, 0).UTC() //未設定時の時刻
+)
 
-//FileListRequest ファイルリストリクエストデータ
+//FileListRequest はファイル一覧情報取得のリクエストデータを保持する
 type FileListRequest struct {
 	Hash   string `json:"hash" xml:"hash" form:"hash" query:"hash"`
 	Offset int    `json:"offset" xml:"offset" form:"offset" query:"offset"`
 	Limit  int    `json:"limit" xml:"limit" form:"limit" query:"limit"`
 }
 
-//FileListResponce ファイルリストレスポンスデータ
-
+//FileListResponce はファイル一覧情報取得のレスポンスデータを保持する
 type FileListResponce struct {
 	Name     string                  `json:"name" xml:"name"`
 	AllCount int                     `json:"allcount" xml:"allcount"`
@@ -31,6 +31,7 @@ type FileListResponce struct {
 	Files    []FileListFilesResponce `json:"files" xml:"files"`
 }
 
+//FileListFilesResponce はファイル一覧取得レスポンスのファイル情報をを保持する
 type FileListFilesResponce struct {
 	Hash     string    `json:"hash" xml:"hash"`
 	Name     string    `json:"name" xml:"name"`
@@ -43,7 +44,7 @@ type FileListFilesResponce struct {
 	Reaction int       `json:"reaction" xml:"reaction"`
 }
 
-//FileListHandler ユーザーログインハンドラ
+//FileListHandler はファイル一覧を取得しレスポンとして返す
 func FileListHandler(c echo.Context) error {
 	req := new(FileListRequest)
 	if err := c.Bind(req); err != nil {
@@ -126,6 +127,7 @@ func FileListHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, responce)
 }
 
+//createFileListResponceFromUpperFolder は指定したフォルダの上位階層のフォルダ情報を生成して返す
 func createFileListResponceFromUpperFolder(folder db.FolderTable) FileListFilesResponce {
 	return FileListFilesResponce{
 		Hash:     folder.Hash,
@@ -140,6 +142,7 @@ func createFileListResponceFromUpperFolder(folder db.FolderTable) FileListFilesR
 	}
 }
 
+//createFileListResponceFromFolder は指定したフォルダのフォルダ情報を生成して返す
 func createFileListResponceFromFolder(folder db.FolderTable) FileListFilesResponce {
 	name := filepath.Base(folder.FilePath)
 	return FileListFilesResponce{
@@ -155,6 +158,7 @@ func createFileListResponceFromFolder(folder db.FolderTable) FileListFilesRespon
 	}
 }
 
+//createFileListResponceFromBook は指定したアーカイブのファイル情報を生成して返す
 func createFileListResponceFromBook(book db.BookTable, userName string) FileListFilesResponce {
 	name := filepath.Base(book.FilePath)
 	history, err := db.SelectHistory(userName, book.Hash)
@@ -162,12 +166,12 @@ func createFileListResponceFromBook(book db.BookTable, userName string) FileList
 	index := 0
 	reaction := 0
 	if history.BookHash != "" {
-		//取得できた時
 		fmt.Printf("createFileListResponceFromBook SelectHistory index=%d", history.ReadPos)
 		readTime = history.ModTime
 		index = history.ReadPos
 		reaction = history.Reaction
 	} else {
+		//見つからない（まだ未読）
 		fmt.Printf("createFileListResponceFromBook SelectHistory NG=%v", err)
 	}
 
