@@ -18,17 +18,47 @@ FORMAT: 1A
     + Attributes
         + token: xxxxxxxxxxxxxx (string, required) - ログイントークン
 
-## ユーザー作成 [/createuser]
+## ユーザー追加 [/api/createuser{?username,password,authlevel}]
 ### POST
 
-* 内部で定義したユーザーを追加する
+* 新しいユーザーを追加する
+* すでに登録されているユーザーの場合はエラーとなる
+* この操作は管理者権限があるユーザーでのみ可能
 
 + Parameters
+    + username: name (string, required) - ユーザー名（半角英数字）
+    + password: abcdefg (string, required) - パスワード（半角英数字）
+    + authlevel: 1 (number, required) - 権限レベル（1=ユーザー、100=管理者）
 
 + Response 200 (application/json)
     + Attributes
-        + status: OK (string, required) - 登録結果
+        + status: 0 (number, required) - 処理結果（0=正常）
 
+## ユーザー削除 [/api/deleteuser{?username}]
+### POST
+
+* 指定したユーザーを削除する
+* この操作は管理者権限があるユーザーのみ可能
+
++ Parameters
+    + username: name (string, required) - ユーザー名（半角英数字）
+
++ Response 200 (application/json)
+    + Attributes
+        + status: 0 (number, required) - 処理結果（0=正常）
+
+## ユーザー一覧 [/api/userlist]
+### POST
+
+* 現在登録されているユーザーをすべて取得する
+
++ Response 200 (application/json)
+    + Attributes
+        + count: 取得ユーザー数
+        + users (array) - ユーザー情報リスト
+            + (object)
+                + name: name.zip (string) - ユーザー名
+                + authlevel: 1 (number)  - 権限レベル
 
 # Group ファイル取得API
 

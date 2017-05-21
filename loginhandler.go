@@ -3,18 +3,10 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 
-	"github.com/mryp/squidgirl-go/config"
 	"github.com/mryp/squidgirl-go/db"
-)
-
-const (
-	//TokenLimitHour トークンの有効時間
-	TokenLimitHour = 48
 )
 
 //LoginRequest ログインリクエストデータ
@@ -28,6 +20,34 @@ type LoginResponce struct {
 	Token string `json:"token" xml:"token"`
 }
 
+type CreateUserRequest struct {
+	UserName  string `json:"username" xml:"username" form:"username" query:"username"`
+	Password  string `json:"password" xml:"password" form:"password" query:"password"`
+	AuthLevel int    `json:"authlevel" xml:"authlevel" form:"authlevel" query:"authlevel"`
+}
+
+type CreateUserResponce struct {
+	Status int `json:"status" xml:"status"`
+}
+
+type DeleteUserRequest struct {
+	UserName string `json:"username" xml:"username" form:"username" query:"username"`
+}
+
+type DeleteUserResponce struct {
+	Status int `json:"status" xml:"status"`
+}
+
+type UserListResponce struct {
+	Count int                     `json:"count" xml:"count"`
+	Users []UserListUsersResponce `json:"users" xml:"users"`
+}
+
+type UserListUsersResponce struct {
+	UserName  string `json:"username" xml:"username"`
+	AuthLevel int    `json:"authlevel" xml:"authlevel"`
+}
+
 //LoginHandler ユーザーログインハンドラ
 func LoginHandler(c echo.Context) error {
 	req := new(LoginRequest)
@@ -36,8 +56,13 @@ func LoginHandler(c echo.Context) error {
 	}
 	fmt.Printf("request=%v\n", *req)
 
-	token := login(req.UserName, req.Password)
-	if token == "" {
+	loginUser, err := NewLoginUserFromDB(req.UserName, req.Password)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusUnauthorized)
+	}
+
+	token, err := loginUser.CreateLoginToken()
+	if err != nil {
 		return echo.NewHTTPError(http.StatusUnauthorized)
 	}
 
@@ -46,66 +71,40 @@ func LoginHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-//ログインチェックを行い、トークンを返す
-func login(userName string, password string) string {
-	if userName == "" || password == "" {
-		fmt.Printf("login ERROR パラメーターエラー\n")
-		return ""
-	}
-
-	//DB検索を行う
-	user, err := db.SelectUser(userName)
-	if err != nil {
-		fmt.Printf("login ERROR ユーザー検索エラー\n")
-		return ""
-	}
-	if user.Name != userName {
-		fmt.Printf("login ERROR ユーザー未登録\n")
-		return ""
-	}
-
-	passHash := db.CreatePasswordHash(password)
-	if user.PassHash != passHash {
-		fmt.Printf("login ERROR パスワード不正 %s <> %s\n", user.PassHash, passHash)
-		return ""
-	}
-
-	token, err := createToken(userName, user.Permission)
-	if err != nil {
-		return ""
-	}
-
-	fmt.Printf("login OK\n")
-	return token
-}
-
-//ログイントークンを生成して返す
-func createToken(userName string, permission int) (string, error) {
-	token := jwt.New(jwt.SigningMethodHS256)
-
-	//マップに設定
-	claims := token.Claims.(jwt.MapClaims)
-	claims["name"] = userName
-	claims["admin"] = permission == db.UserPermissionAdmin
-	claims["exp"] = time.Now().Add(time.Hour * TokenLimitHour).Unix()
-
-	//トークン取得
-	t, err := token.SignedString([]byte(config.GetConfig().Login.TokenSalt))
-	if err != nil {
-		return "", err
-	}
-
-	return t, nil
-}
-
 //CreateUserHandler ユーザーを作成する
 func CreateUserHandler(c echo.Context) error {
-	err := createUser("test", "testpassword", db.UserPermissionAdmin)
+	req := new(CreateUserRequest)
+	if err := c.Bind(req); err != nil {
+		return err
+	}
+	fmt.Printf("request=%v\n", *req)
+
+	err := db.InsertUser(req.UserName, req.Password, req.AuthLevel)
 	if err != nil {
 		return err
 	}
 
-	return c.String(http.StatusOK, "OK")
+	res := new(CreateUserResponce)
+	res.Status = 0
+	return c.JSON(http.StatusOK, res)
+}
+
+func DeleteUserHandler(c echo.Context) error {
+	req := new(DeleteUserRequest)
+	if err := c.Bind(req); err != nil {
+		return err
+	}
+	fmt.Printf("request=%v\n", *req)
+
+	res := new(DeleteUserResponce)
+	res.Status = 0
+	return c.JSON(http.StatusOK, res)
+}
+
+func UserListHandler(c echo.Context) error {
+	res := new(UserListResponce)
+	res.Count = 0
+	return c.JSON(http.StatusOK, res)
 }
 
 //指定したユーザー名・パスワードでユーザーを作成する。既に作成されているときは更新する
@@ -115,11 +114,4 @@ func createUser(userName string, password string, permission int) error {
 	}
 
 	return nil
-}
-
-//GetLoginUserName ログイントークンからユーザー名を取得する
-func GetLoginUserName(c echo.Context) string {
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(jwt.MapClaims)
-	return claims["name"].(string)
 }

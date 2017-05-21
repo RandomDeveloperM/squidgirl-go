@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 	"github.com/mryp/squidgirl-go/db"
 )
@@ -30,12 +29,10 @@ func SaveBookHandler(c echo.Context) error {
 	fmt.Printf("SaveBookHandler request=%v\n", *req)
 
 	//トークンからユーザー名を取得
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(jwt.MapClaims)
-	userName := claims["name"].(string)
+	loginUser := NewLoginUserFromRequest(c)
 
 	//データの追加
-	err := db.InsertHistory(userName, req.Hash, req.Index, req.Reqction, true)
+	err := db.InsertHistory(loginUser.UserName, req.Hash, req.Index, req.Reqction, true)
 	if err != nil {
 		return err
 	}

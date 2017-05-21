@@ -56,7 +56,6 @@ func startEchoServer() {
 		return c.String(http.StatusOK, "squidgirl-go")
 	})
 	e.POST("/login", LoginHandler)
-	e.GET("/createuser", CreateUserHandler)
 
 	apiGroup := e.Group("/api")
 	apiGroup.Use(middleware.JWT([]byte(config.GetConfig().Login.TokenSalt)))
@@ -64,7 +63,9 @@ func startEchoServer() {
 	apiGroup.GET("/thumbnail/:hash", ThumbnailHandler)
 	apiGroup.GET("/page/:hash", PageHandler)
 	apiGroup.POST("/savebook", SaveBookHandler)
-	//apiGroup.POST("/logintest", LoginTestHandler)
+	apiGroup.POST("/createuser", CreateUserHandler)
+	apiGroup.POST("/deleteuser", DeleteUserHandler)
+	apiGroup.POST("/userlist", UserListHandler)
 
 	//開始
 	e.Logger.Fatal(e.Start(":" + strconv.Itoa(config.GetConfig().Server.PortNum)))

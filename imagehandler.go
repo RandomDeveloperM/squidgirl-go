@@ -8,7 +8,6 @@ import (
 
 	"os"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 	"github.com/mryp/squidgirl-go/config"
 	"github.com/mryp/squidgirl-go/db"
@@ -84,12 +83,10 @@ func PageHandler(c echo.Context) error {
 	}
 
 	//トークンからユーザー名を取得
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(jwt.MapClaims)
-	userName := claims["name"].(string)
+	loginUser := NewLoginUserFromRequest(c)
 
 	//現在の読み込み位置を保存
-	err := db.InsertHistory(userName, hash, req.Index, -1, true)
+	err := db.InsertHistory(loginUser.UserName, hash, req.Index, -1, true)
 	if err != nil {
 		return err
 	}

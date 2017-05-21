@@ -7,7 +7,6 @@ import (
 
 	"time"
 
-	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo"
 	"github.com/mryp/squidgirl-go/db"
 )
@@ -53,9 +52,7 @@ func FileListHandler(c echo.Context) error {
 	fmt.Printf("request=%v\n", *req)
 
 	//トークンからユーザー名を取得
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(jwt.MapClaims)
-	userName := claims["name"].(string)
+	loginUser := NewLoginUserFromRequest(c)
 
 	//ルートを取得
 	rootFolder, err := db.SelectFolderRoot()
@@ -109,7 +106,7 @@ func FileListHandler(c echo.Context) error {
 	}
 	for _, v := range bookList {
 		if index >= req.Offset && index < req.Offset+req.Limit {
-			files = append(files, createFileListResponceFromBook(v, userName))
+			files = append(files, createFileListResponceFromBook(v, loginUser.UserName))
 		}
 		index++
 	}
