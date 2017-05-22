@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"time"
 
 	"fmt"
@@ -14,6 +15,12 @@ import (
 const (
 	//TokenLimitHour トークンの有効時間
 	tokenLimitHour = 48
+
+	//DefaultAdminUserName はデフォルトの管理者名
+	DefaultAdminUserName = "admin"
+
+	//DefaultAdminUserPassword はデフォルトの管理者パスワード
+	DefaultAdminUserPassword = "p@ssword"
 )
 
 //LoginUser はログインユーザーのログイン情報を保持する
@@ -29,7 +36,7 @@ func NewLoginUserFromRequest(c echo.Context) *LoginUser {
 
 	loginUser := new(LoginUser)
 	loginUser.UserName = claims["name"].(string)
-	loginUser.AuthLevel = claims["authlevel"].(int)
+	loginUser.AuthLevel, _ = strconv.Atoi(claims["authlevel"].(string))
 	return loginUser
 }
 
@@ -55,6 +62,21 @@ func NewLoginUserFromDB(userName string, password string) (*LoginUser, error) {
 	return loginUser, nil
 }
 
+//CreateDefaultAdminUser はユーザーが1件も登録されていないときはデフォルトの管理者ユーザーを登録する
+func CreateDefaultAdminUser() error {
+	users, err := db.SelectUserAll()
+	if len(users) > 0 {
+		return fmt.Errorf("すでにユーザーは存在するので作成しない")
+	}
+
+	err = db.InsertUser(DefaultAdminUserName, DefaultAdminUserPassword, db.UserPermissionAdmin)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 //CreateLoginToken 現在のログイン情報からログイントークを生成して返す
 func (loginUser *LoginUser) CreateLoginToken() (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
@@ -62,7 +84,7 @@ func (loginUser *LoginUser) CreateLoginToken() (string, error) {
 	//マップに設定
 	claims := token.Claims.(jwt.MapClaims)
 	claims["name"] = loginUser.UserName
-	claims["authlevel"] = loginUser.AuthLevel
+	claims["authlevel"] = strconv.Itoa(loginUser.AuthLevel)
 	claims["exp"] = time.Now().Add(time.Hour * tokenLimitHour).Unix()
 
 	//トークン取得

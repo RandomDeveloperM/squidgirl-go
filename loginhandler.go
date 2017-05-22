@@ -66,6 +66,7 @@ func LoginHandler(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized)
 	}
 
+	fmt.Printf("token=%s\n", token)
 	res := new(LoginResponce)
 	res.Token = token
 	return c.JSON(http.StatusOK, res)
@@ -79,7 +80,12 @@ func CreateUserHandler(c echo.Context) error {
 	}
 	fmt.Printf("request=%v\n", *req)
 
-	err := db.InsertUser(req.UserName, req.Password, req.AuthLevel)
+	user, err := db.SelectUser(req.UserName)
+	if err == nil && user.ID != 0 {
+		return fmt.Errorf("すでにユーザーが存在する")
+	}
+
+	err = db.InsertUser(req.UserName, req.Password, req.AuthLevel)
 	if err != nil {
 		return err
 	}
@@ -96,22 +102,43 @@ func DeleteUserHandler(c echo.Context) error {
 	}
 	fmt.Printf("request=%v\n", *req)
 
+	user, err := db.SelectUser(req.UserName)
+	if err != nil || user.ID == 0 {
+		return fmt.Errorf("削除するユーザーが見つからない")
+	}
+
+	//ユーザーを削除
+	err = db.DeleteUser(user.ID)
+	if err != nil {
+		return err
+	}
+
+	//履歴も削除
+	err = db.DeleteHistory(user.Name)
+	if err != nil {
+		return err
+	}
+
 	res := new(DeleteUserResponce)
 	res.Status = 0
 	return c.JSON(http.StatusOK, res)
 }
 
 func UserListHandler(c echo.Context) error {
-	res := new(UserListResponce)
-	res.Count = 0
-	return c.JSON(http.StatusOK, res)
-}
-
-//指定したユーザー名・パスワードでユーザーを作成する。既に作成されているときは更新する
-func createUser(userName string, password string, permission int) error {
-	if err := db.InsertUser(userName, password, permission); err != nil {
+	userList, err := db.SelectUserAll()
+	if err != nil {
 		return err
 	}
 
-	return nil
+	res := new(UserListResponce)
+	res.Count = len(userList)
+	userResponceList := make([]UserListUsersResponce, 0)
+	for _, user := range userList {
+		userResponceList = append(userResponceList, UserListUsersResponce{
+			UserName:  user.Name,
+			AuthLevel: user.Permission,
+		})
+	}
+	res.Users = userResponceList
+	return c.JSON(http.StatusOK, res)
 }

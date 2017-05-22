@@ -18,6 +18,7 @@ func main() {
 	if !config.LoadConfig() {
 		log.Println("設定ファイル読み込み失敗（デフォルト値動作）")
 	}
+	CreateDefaultAdminUser()
 	startCrontab()
 	startEchoServer()
 }

@@ -82,6 +82,20 @@ func SelectHistory(userName string, bookHash string) (HistoryTable, error) {
 	return recordList[0], nil
 }
 
+func DeleteHistory(userName string) error {
+	fmt.Printf("DeleteHistory userName=%s\n", userName)
+	if userName == "" {
+		return fmt.Errorf("パラメーターエラー")
+	}
+
+	err := deleteHistory(nil, userName)
+	if err != nil {
+		fmt.Printf("DeleteHistory err=%s\n", err)
+		return err
+	}
+	return nil
+}
+
 func insertHistory(session *dbr.Session, record HistoryTable) error {
 	session, err := ConnectDBRecheck(session)
 	if err != nil {
@@ -140,4 +154,20 @@ func selectHistoryList(session *dbr.Session, userName string, bookHash string) (
 	}
 
 	return resultList, nil
+}
+
+func deleteHistory(session *dbr.Session, userName string) error {
+	session, err := ConnectDBRecheck(session)
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	_, err = session.DeleteFrom(historyTableName).
+		Where("user_name = ?", userName).
+		Exec()
+	if err != nil {
+		return err
+	}
+	return nil
 }

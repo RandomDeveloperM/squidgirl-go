@@ -70,6 +70,26 @@ func SelectUser(name string) (UserTable, error) {
 	return recordList[0], nil
 }
 
+func SelectUserAll() ([]UserTable, error) {
+	recordList, err := selectUserListAll(nil)
+	if err != nil {
+		return nil, err
+	}
+	return recordList, nil
+}
+
+func DeleteUser(id int64) error {
+	if id == 0 {
+		return fmt.Errorf("パラメーターエラー")
+	}
+
+	err := deleteUser(nil, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func insertUser(session *dbr.Session, record UserTable) error {
 	session, err := ConnectDBRecheck(session)
 	if err != nil {
@@ -121,6 +141,38 @@ func selectUserList(session *dbr.Session, name string) ([]UserTable, error) {
 	}
 
 	return resultList, nil
+}
+
+func selectUserListAll(session *dbr.Session) ([]UserTable, error) {
+	session, err := ConnectDBRecheck(session)
+	if err != nil {
+		return nil, err
+	}
+	defer session.Close()
+
+	var resultList []UserTable
+	_, err = session.Select("*").From(userTableName).Load(&resultList)
+	if err != nil {
+		return nil, err
+	}
+
+	return resultList, nil
+}
+
+func deleteUser(session *dbr.Session, id int64) error {
+	session, err := ConnectDBRecheck(session)
+	if err != nil {
+		return err
+	}
+	defer session.Close()
+
+	_, err = session.DeleteFrom(userTableName).
+		Where("id = ?", id).
+		Exec()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 //CreatePasswordHash パスワードからパスワードハッシュを生成する
