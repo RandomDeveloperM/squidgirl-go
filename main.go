@@ -60,13 +60,19 @@ func startEchoServer() {
 
 	apiGroup := e.Group("/api")
 	apiGroup.Use(middleware.JWT([]byte(config.GetConfig().Login.TokenSalt)))
+
+	//ファイル関連
 	apiGroup.POST("/filelist", FileListHandler)
 	apiGroup.GET("/thumbnail/:hash", ThumbnailHandler)
 	apiGroup.GET("/page/:hash", PageHandler)
+
+	//既読情報
 	apiGroup.POST("/savebook", SaveBookHandler)
+
+	//ユーザー関連
+	apiGroup.GET("/userlist", UserListHandler)
 	apiGroup.POST("/createuser", CreateUserHandler)
 	apiGroup.POST("/deleteuser", DeleteUserHandler)
-	apiGroup.POST("/userlist", UserListHandler)
 
 	//開始
 	e.Logger.Fatal(e.Start(":" + strconv.Itoa(config.GetConfig().Server.PortNum)))

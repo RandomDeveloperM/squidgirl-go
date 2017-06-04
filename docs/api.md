@@ -48,7 +48,7 @@ FORMAT: 1A
         + status: 0 (number, required) - 処理結果（0=正常）
 
 ## ユーザー一覧 [/api/userlist]
-### POST
+### GET
 
 * 現在登録されているユーザーをすべて取得する
 

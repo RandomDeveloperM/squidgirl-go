@@ -9,46 +9,52 @@ import (
 	"github.com/mryp/squidgirl-go/db"
 )
 
-//LoginRequest ログインリクエストデータ
+//LoginRequest はログインリクエストデータ構造体
 type LoginRequest struct {
 	UserName string `json:"username" xml:"username" form:"username" query:"username"`
 	Password string `json:"password" xml:"password" form:"password" query:"password"`
 }
 
-//LoginResponce ログインレスポンスデータ
+//LoginResponce はログインレスポンスデータ構造体
 type LoginResponce struct {
 	Token string `json:"token" xml:"token"`
 }
 
+//CreateUserRequest はユーザー作成リクエストデータ構造体
 type CreateUserRequest struct {
 	UserName  string `json:"username" xml:"username" form:"username" query:"username"`
 	Password  string `json:"password" xml:"password" form:"password" query:"password"`
 	AuthLevel int    `json:"authlevel" xml:"authlevel" form:"authlevel" query:"authlevel"`
 }
 
+//CreateUserResponce はユーザー作成レスポンス構造体
 type CreateUserResponce struct {
 	Status int `json:"status" xml:"status"`
 }
 
+//DeleteUserRequest はユーザー削除リクエスト構造体
 type DeleteUserRequest struct {
 	UserName string `json:"username" xml:"username" form:"username" query:"username"`
 }
 
+//DeleteUserResponce はユーザー削除レスポンス構造体
 type DeleteUserResponce struct {
 	Status int `json:"status" xml:"status"`
 }
 
+//UserListResponce はユーザー一覧取得リクエスト構造体
 type UserListResponce struct {
 	Count int                     `json:"count" xml:"count"`
 	Users []UserListUsersResponce `json:"users" xml:"users"`
 }
 
+//UserListUsersResponce はユーザー一覧取得レスポンス構造体
 type UserListUsersResponce struct {
 	UserName  string `json:"username" xml:"username"`
 	AuthLevel int    `json:"authlevel" xml:"authlevel"`
 }
 
-//LoginHandler ユーザーログインハンドラ
+//LoginHandler はユーザーログインを行い、トークンを返す
 func LoginHandler(c echo.Context) error {
 	req := new(LoginRequest)
 	if err := c.Bind(req); err != nil {
@@ -72,7 +78,7 @@ func LoginHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
-//CreateUserHandler ユーザーを作成する
+//CreateUserHandler は指定したユーザーを作成する
 func CreateUserHandler(c echo.Context) error {
 	req := new(CreateUserRequest)
 	if err := c.Bind(req); err != nil {
@@ -95,6 +101,7 @@ func CreateUserHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
+//DeleteUserHandler は指定したユーザーを削除する。削除するには管理者権限が必要
 func DeleteUserHandler(c echo.Context) error {
 	req := new(DeleteUserRequest)
 	if err := c.Bind(req); err != nil {
@@ -124,6 +131,7 @@ func DeleteUserHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, res)
 }
 
+//UserListHandler はユーザー一覧を取得する
 func UserListHandler(c echo.Context) error {
 	userList, err := db.SelectUserAll()
 	if err != nil {
