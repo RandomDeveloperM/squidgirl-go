@@ -86,6 +86,11 @@ func CreateUserHandler(c echo.Context) error {
 	}
 	fmt.Printf("request=%v\n", *req)
 
+	loginUser := NewLoginUserFromRequest(c)
+	if loginUser.AuthLevel != db.UserPermissionAdmin {
+		return fmt.Errorf("ログインユーザーが管理者権限を持っていない")
+	}
+
 	user, err := db.SelectUser(req.UserName)
 	if err == nil && user.ID != 0 {
 		return fmt.Errorf("すでにユーザーが存在する")
@@ -112,6 +117,15 @@ func DeleteUserHandler(c echo.Context) error {
 	user, err := db.SelectUser(req.UserName)
 	if err != nil || user.ID == 0 {
 		return fmt.Errorf("削除するユーザーが見つからない")
+	}
+
+	//トークンからユーザー名を取得
+	loginUser := NewLoginUserFromRequest(c)
+	if loginUser.AuthLevel != db.UserPermissionAdmin {
+		return fmt.Errorf("ログインユーザーが管理者権限を持っていない")
+	}
+	if loginUser.UserName == req.UserName {
+		return fmt.Errorf("現在ログインしているユーザーは削除できない")
 	}
 
 	//ユーザーを削除
