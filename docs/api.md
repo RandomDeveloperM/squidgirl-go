@@ -90,6 +90,20 @@ FORMAT: 1A
                 + index: 45 (number)  - 既読位置（フォルダ時は0）
                 + reaction: 1 (number)  - リアクションタイプ（フォルダ時は0）
 
+## ファイル・フォルダ一覧取得 [/api/parentlist{?hash}]
+### POST
+
+* 指定したフォルダより上のフォルダを一覧で取得する
+* 自分自身のフォルダ情報を含み下位階層から順番に登録する
+
++ Response 200 (application/json)
+    + Attributes
+        + count: 取得フォルダ数
+        + folders (array) - フォルダ情報リスト
+            + (object)
+                + hash: xxxxx (string) - ファイル・フォルダのハッシュ値
+                + name: name.zip (string) - ファイル・フォルダ名
+
 ## 履歴一覧取得 [/api/historylist{?token}]
 
 * 履歴として残っているファイルを一覧で取得する

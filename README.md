@@ -24,3 +24,4 @@ HTMLパーサ
 その他
 
 * https://github.com/robfig/cron
+* https://github.com/nfnt/resize

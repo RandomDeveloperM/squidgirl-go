@@ -63,6 +63,7 @@ func startEchoServer() {
 
 	//ファイル関連
 	apiGroup.POST("/filelist", FileListHandler)
+	apiGroup.POST("/parentlist", ParentListHandler)
 	apiGroup.GET("/thumbnail/:hash", ThumbnailHandler)
 	apiGroup.GET("/page/:hash", PageHandler)
 
